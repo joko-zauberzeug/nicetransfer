@@ -1,5 +1,14 @@
 # Changelog
 
+## Drag & drop, image preview, color consistency — 25. April 2026, 14:53
+
+- Drag & drop files directly onto the upload zone — visual highlight while dragging
+- Image preview via NiceGUI dialog with base64 data URI — no new tab, no download dialog in Firefox
+- File list: separate icon buttons for preview (🖼) and download (⬇), filename as plain text — prevents accidental double-tap on mobile
+- Root cause of the Firefox download bug: preview icon and filename download link were adjacent tap targets
+- Section title color unified to `#FF6D00` via `.nt-section-title` CSS class — consistent with the logo orange
+- Preview dialog: dark gray background, no padding, no border
+
 ## README trimmed, Manual completed — 25. April 2026, 13:13
 
 README is now a short pitch with a quick start — everything else lives in the Manual.
@@ -7,6 +16,8 @@ README is now a short pitch with a quick start — everything else lives in the 
 - README reduced to tagline, how it works, manual link, and installation
 - Manual gains a Features section
 - No duplicate content between the two documents
+
+→ [40c6d2b](https://github.com/joko-zauberzeug/nicetransfer/commit/40c6d2bf94b15d154c0c5b2e1e083ce10fc62bf6)
 
 ## Documentation update — 25. April 2026, 12:54
 
