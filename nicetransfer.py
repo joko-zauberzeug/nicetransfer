@@ -85,6 +85,11 @@ def cfg_int(section, key, default):
     return int(cfg.get(section, {}).get(key, default))
 def cfg_str(section, key, default):
     return str(cfg.get(section, {}).get(key, default))
+def cfg_bool(section, key, default):
+    return bool(cfg.get(section, {}).get(key, default))
+def cfg_theme():
+    t = cfg.get("ui", {}).get("theme", "auto").lower()
+    return {"dark": True, "light": False}.get(t, None)  # None = auto
 
 
 # ── 5. CLI ────────────────────────────────────────────────────────────────────
@@ -118,9 +123,9 @@ for d in [UPLOAD_DIR, DOWNLOAD_DIR, SHARE_DIR]:
 
 class AppState:
     def __init__(self):
-        self.upload_enabled   = not ARGS.no_upload
-        self.download_enabled = not ARGS.no_download
-        self.share_enabled    = not ARGS.no_share
+        self.upload_enabled   = not ARGS.no_upload   and cfg_bool("ui", "upload",   True)
+        self.download_enabled = not ARGS.no_download and cfg_bool("ui", "download", True)
+        self.share_enabled    = not ARGS.no_share    and cfg_bool("ui", "share",    True)
 
 state = AppState()
 
@@ -248,7 +253,7 @@ async def token_guard(request, call_next):
 
 # ── 9. CSS ────────────────────────────────────────────────────────────────────
 
-CSS = '<link rel="stylesheet" href="/nt-static/nicetransfer.css">'
+CSS = f'<link rel="stylesheet" href="/nt-static/nicetransfer.css?v={int(__import__("time").time())}">'
 
 
 # ── 10. File section ──────────────────────────────────────────────────────────
@@ -304,7 +309,7 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
                 <div class="nt-drop-zone row items-center justify-center q-py-xs w-full"
                      style="min-height:40px; border-bottom:1px solid rgba(128,128,128,0.2); gap:12px">
                   <q-btn v-if="props.canAddFiles" flat dense no-caps
-                         color="grey-5" icon="upload" label="Upload Files">
+                         color="grey-5" icon="upload" label="Upload files">
                     <q-uploader-add-trigger />
                   </q-btn>
                   <div class="row items-center text-body2 text-grey-5" style="gap:4px">
@@ -392,16 +397,27 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
                 </q-td>
             """)
 
+            # ── Live sync: update table when directory changes on any client ──
+            known = {"entries": file_entries(directory)}
+
+            def sync_table():
+                current = file_entries(directory)
+                if current != known["entries"]:
+                    known["entries"] = current
+                    table.rows = make_rows(current, with_download)
+                    table.update()
+
+            ui.timer(3.0, sync_table)
+
 
 
 # ── 11. Shared header ─────────────────────────────────────────────────────────
 
 def build_header(is_dark, section_links=None, current=""):
     with ui.header().classes("items-center q-px-md q-py-sm").props("elevated"):
-        ui.link("nicetransfer", "/").classes("nt-logo")
+        ui.link("NiceTransfer", "/").classes("nt-logo")
 
         if section_links:
-            ui.separator().props("vertical color=grey-7").classes("q-mx-sm")
             tab_refs = {}
             with ui.tabs().props("dense no-caps").classes("text-grey-4"):
                 for label, anchor in section_links:
@@ -450,7 +466,7 @@ def build_header(is_dark, section_links=None, current=""):
 async def index(request: Request):
     local = is_local(request)
     ui.add_head_html(CSS)
-    is_dark = ui.dark_mode()
+    is_dark = ui.dark_mode(value=cfg_theme())
 
     # Build header with all possible tabs — visibility controlled reactively
     build_header(is_dark, section_links=[
@@ -573,7 +589,7 @@ async def index(request: Request):
 @ui.page("/manual")
 async def manual_page(request: Request):
     ui.add_head_html(CSS)
-    is_dark = ui.dark_mode()
+    is_dark = ui.dark_mode(value=cfg_theme())
     build_header(is_dark, current="manual")
     md_file = SCRIPT_DIR / "MANUAL.md"
     content = md_file.read_text() if md_file.exists() else "_MANUAL.md not found._"
@@ -584,7 +600,7 @@ async def manual_page(request: Request):
 @ui.page("/changelog")
 async def changelog_page(request: Request):
     ui.add_head_html(CSS)
-    is_dark = ui.dark_mode()
+    is_dark = ui.dark_mode(value=cfg_theme())
     build_header(is_dark, current="changelog")
     md_file = SCRIPT_DIR / "CHANGELOG.md"
     if md_file.exists():
@@ -636,7 +652,7 @@ async def preview_file(folder: str, filename: str):
 # ── 15. Banner & Start ────────────────────────────────────────────────────────
 
 _banner_lines = [
-    "nicetransfer v0.5",
+    "NiceTransfer v0.5",
     None,
     f"upload  : {UPLOAD_DIR}",
     f"download: {DOWNLOAD_DIR}",
@@ -667,5 +683,5 @@ if NO_NETWORK:
 app.on_startup(lambda: threading.Timer(
     1.5, lambda: webbrowser.open(f"http://localhost:{PORT}")).start())
 
-ui.run(host="0.0.0.0", port=PORT, title="nicetransfer",
+ui.run(host="0.0.0.0", port=PORT, title="NiceTransfer",
        favicon="📁", dark=True, reload=False, show=False)

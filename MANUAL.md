@@ -52,6 +52,12 @@ share    = "/path/to/share-folder"
 [server]
 port  = 7777
 token = ""   # empty = randomly generated on each start
+
+[ui]
+theme    = "auto"   # auto (follows OS), light, dark
+upload   = false    # show Upload section on startup
+download = false    # show Download section on startup
+share    = true     # show Share section on startup
 ```
 
 ### Starting

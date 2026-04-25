@@ -23,7 +23,6 @@
   color: var(--nt-orange) !important;
   font-weight: 700;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 .nt-section { scroll-margin-top: 64px; }
 

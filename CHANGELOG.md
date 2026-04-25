@@ -1,5 +1,16 @@
 # Changelog
 
+## Live sync, config defaults, naming and polish — 25. April 2026, 22:38
+
+- File list updates automatically on all connected clients within 3 seconds when any client uploads — no manual refresh needed
+- New `[ui]` section in `config.toml`: set default theme (`auto` / `light` / `dark`) and which sections are shown on startup
+- Default out of the box: Auto theme, Share section only
+- Renamed to **NiceTransfer** (capital N and T) in logo, browser title, and terminal banner
+- Section titles no longer forced uppercase — consistent with the control panel labels
+- "Upload Files" → "Upload files" — consistent sentence case with "Drop files here"
+- Removed the vertical separator between logo and navigation tabs
+- CSS link gets a timestamp on each server start — no more stale browser cache after updates
+
 ## UI polish: multi-select ZIP download, consistent sizing, CSS extracted — 25. April 2026, 21:43
 
 - Checkboxes in the file list for multi-file selection — native Quasar `selection=multiple`
@@ -11,6 +22,8 @@
 - Removed the separator line and dead whitespace between the upload zone and the file table
 - CSS moved to `nicetransfer.css`; brand color defined as `--nt-orange` CSS variable — single source of truth
 - Typography switched to Quasar scale: section titles use `text-h6`, drop zone text `text-body2`, upload button default size
+
+→ [36c7ddb](https://github.com/joko-zauberzeug/nicetransfer/commit/36c7ddbf25402f69b6d74ea82b680c1f588f765e)
 
 ## Drag & drop, image preview, color consistency — 25. April 2026, 14:53
 
