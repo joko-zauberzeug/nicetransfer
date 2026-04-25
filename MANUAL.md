@@ -1,17 +1,24 @@
 # nicetransfer — Manual
 
-nicetransfer is a local file transfer tool. It starts a web server on the local network through which files can be transferred between devices — no cloud, no installation on the remote device.
+Nice and simple local file transfer via browser.
 
-## Requirements
+nicetransfer turns any computer into a local file transfer hub. Start it on one device, scan the QR code on any other device on the same Wi-Fi — the browser opens and files can be transferred immediately. Nothing to install on the client side.
 
-- macOS, Linux
+---
+
+## Server setup
+
+The server is the computer running nicetransfer.
+
+### Requirements
+
+- macOS or Linux
 - Python 3.9+
-- All devices on the same Wi-Fi network
 
-## Installation
+### Installation
 
 ```bash
-git clone https://github.com/yourusername/nicetransfer
+git clone https://github.com/joko-zauberzeug/nicetransfer
 cd nicetransfer
 chmod +x install.sh
 ./install.sh
@@ -22,9 +29,9 @@ The installer creates:
 - `config.toml` — configuration file
 - `run.sh` — start script
 
-## Configuration
+### Configuration
 
-Edit `config.toml` in the project folder:
+Edit `config.toml`:
 
 ```toml
 [dirs]
@@ -37,40 +44,66 @@ port  = 7777
 token = ""   # empty = randomly generated on each start
 ```
 
-## Starting
+### Starting
 
 ```bash
-./run.sh                    # Default (all features active)
+./run.sh                    # All sections active
 ./run.sh --no-upload        # Download and Share only
 ./run.sh --no-download      # Upload and Share only
 ./run.sh --no-share         # Upload and Download only
-./run.sh --port 8888        # Use a different port
+./run.sh --port 8888        # Custom port
 ```
 
-## Usage
+### Control panel
 
-1. Start `./run.sh`
-2. Scan the QR code in the browser (localhost:7777) with your smartphone
-3. The browser opens on the smartphone with the transfer interface
+Open `http://localhost:7777` on the server device to access the control panel:
+
+- **QR code and network URL** — share with clients or scan directly
+- **Section toggles** — enable/disable Upload, Download, Share at runtime
+- **Sortable file list** — click column headers to sort
+- **Image preview** — click the 🖼 icon next to image files
+- **Theme toggle** — Dark / Light / Auto
+
+---
+
+## Client usage
+
+The client is any device that connects to nicetransfer — phone, tablet, or another computer. No installation required.
+
+1. Make sure the device is on the same Wi-Fi network as the server
+2. Scan the QR code shown in the server's browser
+3. The browser opens with the transfer interface
+4. Upload, download, or share files
+
+To connect manually: open the network URL shown on the server (e.g. `http://192.168.x.x:7777/?token=...`) in any browser.
+
+---
 
 ## Sections
 
-| Section | Function |
-|---------|----------|
-| **Upload** | Upload files from the device to the server |
-| **Download** | Download files from the server |
-| **Share** | Bidirectional — everyone can upload and download |
+| Section | Who can upload | Who can download |
+|---------|---------------|-----------------|
+| **Upload only** | Clients | — |
+| **Download only** | — | Clients |
+| **Share** | Everyone | Everyone |
 
-## Control (server device only)
+---
 
-Additional options visible at `localhost:7777`:
-- QR code and network URL
-- Toggles: enable/disable Upload / Download / Share
-- File list sorting
+## No network
+
+If no network connection is found at startup, nicetransfer shows a warning with platform-specific instructions for creating a Wi-Fi hotspot (macOS, Linux, Windows).
+
+While running, the network is checked every 5 seconds. A notification appears in the terminal and browser if:
+
+- **Network lost** — clients are disconnected
+- **Reconnected, same IP** — clients should reconnect automatically
+- **Reconnected, new IP** — clients must rescan the QR code
+
+---
 
 ## Security
 
-- Access is token-protected (included in the QR code)
-- Token is regenerated on each start (unless set in config.toml)
-- Only reachable on the local network
-- No internet access, no cloud
+- Access is token-protected — the token is embedded in the QR code URL
+- Token regenerates on each start unless a fixed value is set in `config.toml`
+- Local access (`127.0.0.1`) does not require a token
+- The server only binds to the local network — no internet exposure

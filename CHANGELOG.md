@@ -1,5 +1,14 @@
 # Changelog
 
+## Documentation update — 25. April 2026, 12:54
+
+README and Manual restructured with a clearer focus on what nicetransfer is and who uses it.
+
+- New tagline: "Nice and simple local file transfer via browser"
+- README keeps it short — hook, how it works, features, quick start
+- Manual now clearly separated into server setup and client usage
+- Link from README to the full manual on GitHub
+
 ## Network awareness — 25. April 2026, 12:10
 
 nicetransfer now detects network state at startup and while running.
@@ -8,6 +17,8 @@ nicetransfer now detects network state at startup and while running.
 - A background timer checks every 5 seconds whether the network IP has changed
 - When the network drops or reconnects, both the terminal and the web UI show a notification
 - Three cases are distinguished: network lost, reconnected with same IP (clients reconnect automatically), reconnected with new IP (clients must rescan the QR code)
+
+→ [6ac5f9a](https://github.com/joko-zauberzeug/nicetransfer/commit/6ac5f9a17908936dc9e2914c258ba5e00ace82f8)
 
 ## First fixes after going public — 25. April 2026, 11:24
 
