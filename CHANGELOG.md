@@ -1,5 +1,15 @@
 # Changelog
 
+## Manual update — 25. April 2026, 23:15
+
+- NiceTransfer renamed consistently throughout (was nicetransfer)
+- Built on [NiceGUI](https://nicegui.io) by Zauberzeug GmbH — mentioned in the intro
+- Requirements clarified: only Python 3.9+ needed manually, all other dependencies (including NiceGUI) installed automatically by `./install.sh`
+- Starting section: corrected default comment, added note that CLI flags override config
+- Control panel: emoji replaced with description, ZIP download and multi-file selection documented
+- Sections table simplified to ✓/— with a plain explanation — removes the ambiguous "Everyone vs. Clients" wording
+- Features list updated: live sync and ZIP download added
+
 ## Live sync, config defaults, naming and polish — 25. April 2026, 22:38
 
 - File list updates automatically on all connected clients within 3 seconds when any client uploads — no manual refresh needed
@@ -10,6 +20,8 @@
 - "Upload Files" → "Upload files" — consistent sentence case with "Drop files here"
 - Removed the vertical separator between logo and navigation tabs
 - CSS link gets a timestamp on each server start — no more stale browser cache after updates
+
+→ [e2a329e](https://github.com/joko-zauberzeug/nicetransfer/commit/e2a329ebb9d7bc54f1dfa31d374eac6187093be4)
 
 ## UI polish: multi-select ZIP download, consistent sizing, CSS extracted — 25. April 2026, 21:43
 
