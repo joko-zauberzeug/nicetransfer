@@ -1,5 +1,14 @@
 # Changelog
 
+## First fixes after going public — 25. April 2026, 11:24
+
+Several small issues discovered while preparing the repo for GitHub.
+
+- Startup banner now adapts its width dynamically — no more broken box borders with long paths or URLs
+- Hidden files (`.gitkeep`) are no longer shown in the file list
+- Removed duplicate "no files" label — NiceGUI's table already handles this on its own
+- Changelog page now renders each version as a separate card (blog-post style)
+
 ## v0.4 — 2026-04-25
 
 ### Changed

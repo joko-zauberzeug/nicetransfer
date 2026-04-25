@@ -159,7 +159,7 @@ IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"}
 
 def file_entries(directory: Path):
     try:
-        files = [f for f in directory.iterdir() if f.is_file()]
+        files = [f for f in directory.iterdir() if f.is_file() and f.name != ".gitkeep"]
     except Exception:
         return []
     files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
@@ -309,8 +309,6 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
                 </q-td>
             """)
 
-            if not entries:
-                ui.label("No files available").classes("text-grey q-pa-sm")
 
 
 # ── 11. Shared header ─────────────────────────────────────────────────────────
@@ -451,10 +449,18 @@ async def changelog_page(request: Request):
     is_dark = ui.dark_mode()
     build_header(is_dark, current="changelog")
     md_file = SCRIPT_DIR / "CHANGELOG.md"
-    content = md_file.read_text() if md_file.exists() else "_CHANGELOG.md not found._"
-    with ui.column().classes("w-full q-pa-md").style("max-width: 860px; margin: 0 auto"):
-        with ui.card().classes("w-full"):
-            ui.markdown(content)
+    if md_file.exists():
+        parts = md_file.read_text().split("\n## ")
+        entries = ["## " + p.strip() for p in parts[1:] if p.strip()]
+    else:
+        entries = []
+    with ui.column().classes("w-full q-pa-md").style("max-width: 860px; margin: 0 auto; gap: 1rem"):
+        if entries:
+            for entry in entries:
+                with ui.card().classes("w-full"):
+                    ui.markdown(entry)
+        else:
+            ui.markdown("_CHANGELOG.md not found._")
 
 
 # ── 14. Download & Preview routes ─────────────────────────────────────────────
@@ -491,20 +497,28 @@ async def preview_file(folder: str, filename: str):
 
 # ── 15. Banner & Start ────────────────────────────────────────────────────────
 
-print(f"""
-┌──────────────────────────────────────────────────┐
-│  nicetransfer v0.5                               │
-├──────────────────────────────────────────────────┤
-│  upload  : {str(UPLOAD_DIR):<38}│
-│  download: {str(DOWNLOAD_DIR):<38}│
-│  share   : {str(SHARE_DIR):<38}│
-├──────────────────────────────────────────────────┤
-│  local   : http://127.0.0.1:{PORT:<5}                │
-│  network : {ACCESS_URL:<38}│
-├──────────────────────────────────────────────────┤
-│  Scan QR code in browser · Ctrl+C to quit        │
-└──────────────────────────────────────────────────┘
-""")
+_banner_lines = [
+    "nicetransfer v0.5",
+    None,
+    f"upload  : {UPLOAD_DIR}",
+    f"download: {DOWNLOAD_DIR}",
+    f"share   : {SHARE_DIR}",
+    None,
+    f"local   : http://127.0.0.1:{PORT}",
+    f"network : {ACCESS_URL}",
+    None,
+    "Scan QR code in browser · Ctrl+C to quit",
+]
+_w = max(len(l) for l in _banner_lines if l is not None)
+_bar = "─" * (_w + 4)
+print(f"┌{_bar}┐")
+for _l in _banner_lines:
+    if _l is None:
+        print(f"├{_bar}┤")
+    else:
+        print(f"│  {_l:<{_w}}  │")
+print(f"└{_bar}┘")
+print()
 
 app.on_startup(lambda: threading.Timer(
     1.5, lambda: webbrowser.open(f"http://localhost:{PORT}")).start())
