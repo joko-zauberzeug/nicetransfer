@@ -1,5 +1,14 @@
 # Changelog
 
+## Network awareness — 25. April 2026, 12:10
+
+nicetransfer now detects network state at startup and while running.
+
+- If no network is found on startup, a warning is shown in the terminal and in the web UI with platform-specific hotspot setup instructions (macOS, Linux, Windows)
+- A background timer checks every 5 seconds whether the network IP has changed
+- When the network drops or reconnects, both the terminal and the web UI show a notification
+- Three cases are distinguished: network lost, reconnected with same IP (clients reconnect automatically), reconnected with new IP (clients must rescan the QR code)
+
 ## First fixes after going public — 25. April 2026, 11:24
 
 Several small issues discovered while preparing the repo for GitHub.
@@ -8,6 +17,8 @@ Several small issues discovered while preparing the repo for GitHub.
 - Hidden files (`.gitkeep`) are no longer shown in the file list
 - Removed duplicate "no files" label — NiceGUI's table already handles this on its own
 - Changelog page now renders each version as a separate card (blog-post style)
+
+→ [742f563](https://github.com/joko-zauberzeug/nicetransfer/commit/742f5633487a254681b11a1dfd051a712ea4c2ee)
 
 ## v0.4 — 2026-04-25
 

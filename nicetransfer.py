@@ -137,7 +137,49 @@ def get_local_ip():
         return "127.0.0.1"
 
 LOCAL_IP   = get_local_ip()
+NO_NETWORK = LOCAL_IP == "127.0.0.1"
 ACCESS_URL = f"http://{LOCAL_IP}:{PORT}/?token={TOKEN}"
+
+def hotspot_hint_md():
+    if sys.platform == "darwin":
+        return (
+            "**No network detected** — other devices cannot reach this server.\n\n"
+            "**Option A — Internet Sharing (macOS):**  \n"
+            "System Settings → General → Sharing → Internet Sharing\n\n"
+            "**Option B — use a phone hotspot:**  \n"
+            "Enable Personal Hotspot on iPhone or Android, then connect this Mac to it."
+        )
+    elif sys.platform == "linux":
+        return (
+            "**No network detected** — other devices cannot reach this server.\n\n"
+            "**Create a hotspot** (requires NetworkManager):  \n"
+            "```\nnmcli device wifi hotspot ssid 'nicetransfer' password 'yourpassword'\n```\n"
+            "Or: Settings → WiFi → Turn on Hotspot"
+        )
+    elif sys.platform.startswith("win"):
+        return (
+            "**No network detected** — other devices cannot reach this server.\n\n"
+            "**Create a hotspot (Windows):**  \n"
+            "Settings → Network & Internet → Mobile Hotspot"
+        )
+    else:
+        return "**No network detected.** Please create a WiFi hotspot so other devices can connect."
+
+def hotspot_hint_text():
+    if sys.platform == "darwin":
+        return (
+            "  Option A: System Settings → General → Sharing → Internet Sharing\n"
+            "  Option B: connect to an iPhone/Android Personal Hotspot"
+        )
+    elif sys.platform == "linux":
+        return (
+            "  nmcli device wifi hotspot ssid 'nicetransfer' password 'yourpassword'\n"
+            "  or: Settings → WiFi → Turn on Hotspot"
+        )
+    elif sys.platform.startswith("win"):
+        return "  Settings → Network & Internet → Mobile Hotspot"
+    else:
+        return "  Please create a WiFi hotspot manually."
 
 def make_qr_svg(url):
     if not HAS_QR: return ""
@@ -380,35 +422,89 @@ async def index(request: Request):
 
         # ── Server control panel ──────────────────────────────────────────────
         if local:
-            with ui.row().classes("w-full").style("gap: 1.5rem; align-items: flex-start; flex-wrap: wrap"):
+            _cur = get_local_ip()
+            _last_ip = {"value": _cur, "real": _cur}  # "real" = last non-loopback IP
 
-                with ui.card().style("flex: 1; min-width: 260px"):
-                    ui.label("Connection").classes("text-overline text-grey")
-                    ui.separator()
-                    ui.label(ACCESS_URL).classes("nt-url")
-                    if QR_SVG:
-                        with ui.element("div").classes("nt-qr"):
-                            ui.html(QR_SVG)
-                        ui.label("Scan QR → browser opens") \
-                            .classes("text-caption text-grey text-center")
+            @ui.refreshable
+            def local_panel():
+                ip = get_local_ip()
+                no_net = ip == "127.0.0.1"
+                url = f"http://{ip}:{PORT}/?token={TOKEN}"
+                qr  = make_qr_svg(url) if not no_net else ""
 
-                with ui.card().style("flex: 1; min-width: 260px"):
-                    ui.label("Control").classes("text-overline text-grey")
-                    ui.separator()
-                    for label, key, path in [
-                        ("Upload only",   "upload_enabled",   UPLOAD_DIR),
-                        ("Download only", "download_enabled", DOWNLOAD_DIR),
-                        ("Share",         "share_enabled",    SHARE_DIR),
-                    ]:
-                        with ui.column().classes("w-full q-py-xs").style("gap:0"):
-                            with ui.row().classes("items-center justify-between w-full"):
-                                ui.label(label)
-                                _key = key
-                                ui.switch(value=getattr(state, _key),
-                                    on_change=lambda e, k=_key: setattr(state, k, e.value))
-                            ui.label(str(path)).classes("text-caption text-grey") \
-                                .style("word-break:break-all; margin-top:-4px")
-                        ui.separator().props("spaced=false")
+                if no_net:
+                    with ui.card().classes("w-full").style("border-left: 4px solid #FF6D00"):
+                        ui.label("⚠  No network — other devices cannot connect") \
+                            .classes("text-deep-orange text-weight-bold q-mb-sm")
+                        ui.markdown(hotspot_hint_md())
+
+                with ui.row().classes("w-full").style("gap: 1.5rem; align-items: flex-start; flex-wrap: wrap"):
+
+                    with ui.card().style("flex: 1; min-width: 260px"):
+                        ui.label("Connection").classes("text-overline text-grey")
+                        ui.separator()
+                        if no_net:
+                            ui.label("Only accessible on this device") \
+                                .classes("text-grey text-caption q-mt-sm")
+                        else:
+                            ui.label(url).classes("nt-url")
+                            if qr:
+                                with ui.element("div").classes("nt-qr"):
+                                    ui.html(qr)
+                                ui.label("Scan QR → browser opens") \
+                                    .classes("text-caption text-grey text-center")
+
+                    with ui.card().style("flex: 1; min-width: 260px"):
+                        ui.label("Control").classes("text-overline text-grey")
+                        ui.separator()
+                        for label, key, path in [
+                            ("Upload only",   "upload_enabled",   UPLOAD_DIR),
+                            ("Download only", "download_enabled", DOWNLOAD_DIR),
+                            ("Share",         "share_enabled",    SHARE_DIR),
+                        ]:
+                            with ui.column().classes("w-full q-py-xs").style("gap:0"):
+                                with ui.row().classes("items-center justify-between w-full"):
+                                    ui.label(label)
+                                    _key = key
+                                    ui.switch(value=getattr(state, _key),
+                                        on_change=lambda e, k=_key: setattr(state, k, e.value))
+                                ui.label(str(path)).classes("text-caption text-grey") \
+                                    .style("word-break:break-all; margin-top:-4px")
+                            ui.separator().props("spaced=false")
+
+            local_panel()
+
+            def check_network():
+                ip  = get_local_ip()
+                old = _last_ip["value"]
+                if ip == old:
+                    return
+                _last_ip["value"] = ip
+                local_panel.refresh()
+
+                if ip != "127.0.0.1":
+                    _last_ip["real"] = ip
+
+                if old == "127.0.0.1":
+                    if ip == _last_ip["real"]:
+                        ui.notify("Network reconnected — same IP, clients should reconnect automatically",
+                                  type="positive", close_button=True, timeout=0)
+                        print(f"\n✓  Network reconnected — same IP ({ip}), clients should reconnect automatically")
+                    else:
+                        ui.notify("Network reconnected with new IP — clients must rescan the QR code",
+                                  type="warning", close_button=True, timeout=0)
+                        print(f"\n⚠  Network reconnected with new IP: {_last_ip['real']} → {ip}")
+                        print(f"   Clients must reconnect: http://{ip}:{PORT}/?token={TOKEN}")
+                elif ip == "127.0.0.1":
+                    ui.notify("Network lost — clients disconnected", type="warning", close_button=True, timeout=0)
+                    print("\n⚠  Network lost — clients disconnected")
+                else:
+                    ui.notify("IP changed — clients must rescan the QR code",
+                              type="warning", close_button=True, timeout=0)
+                    print(f"\n⚠  IP changed: {old} → {ip}")
+                    print(f"   Clients must reconnect: http://{ip}:{PORT}/?token={TOKEN}")
+
+            ui.timer(5.0, check_network)
 
         # ── File sections ─────────────────────────────────────────────────────
         upload_col   = ui.element("div").classes("w-full")
@@ -519,6 +615,12 @@ for _l in _banner_lines:
         print(f"│  {_l:<{_w}}  │")
 print(f"└{_bar}┘")
 print()
+
+if NO_NETWORK:
+    print("⚠  No network detected — other devices cannot connect.")
+    print("   To create a hotspot:")
+    print(hotspot_hint_text())
+    print()
 
 app.on_startup(lambda: threading.Timer(
     1.5, lambda: webbrowser.open(f"http://localhost:{PORT}")).start())
