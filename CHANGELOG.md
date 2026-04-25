@@ -1,5 +1,9 @@
 # Changelog
 
+## Platform distribution notes — 25. April 2026, 23:35
+
+- Added `PLATFORMS.md` — feasibility notes for macOS (.app bundle), Linux (AppImage, Flatpak), and Android (Termux)
+
 ## Manual update — 25. April 2026, 23:15
 
 - NiceTransfer renamed consistently throughout (was nicetransfer)
@@ -9,6 +13,8 @@
 - Control panel: emoji replaced with description, ZIP download and multi-file selection documented
 - Sections table simplified to ✓/— with a plain explanation — removes the ambiguous "Everyone vs. Clients" wording
 - Features list updated: live sync and ZIP download added
+
+→ [4b7428a](https://github.com/joko-zauberzeug/nicetransfer/commit/4b7428aa0f67718b1c2e0faab569fa7e968fc0ca)
 
 ## Live sync, config defaults, naming and polish — 25. April 2026, 22:38
 
