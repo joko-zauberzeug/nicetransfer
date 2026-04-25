@@ -4,6 +4,16 @@ Nice and simple local file transfer via browser.
 
 nicetransfer turns any computer into a local file transfer hub. Start it on one device, scan the QR code on any other device on the same Wi-Fi — the browser opens and files can be transferred immediately. Nothing to install on the client side.
 
+## Features
+
+- Three sections: **Upload only**, **Download only**, **Share** (bidirectional)
+- Toggle sections on and off at runtime without restarting
+- Token-protected access via QR code
+- Image preview for JPG, PNG, GIF, WebP, SVG
+- Dark / Light / Auto theme
+- Detects missing network and shows hotspot setup instructions (macOS, Linux, Windows)
+- Live network monitoring — notifies when IP changes or connection drops
+
 ---
 
 ## Server setup

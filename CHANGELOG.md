@@ -1,5 +1,13 @@
 # Changelog
 
+## README trimmed, Manual completed — 25. April 2026, 13:13
+
+README is now a short pitch with a quick start — everything else lives in the Manual.
+
+- README reduced to tagline, how it works, manual link, and installation
+- Manual gains a Features section
+- No duplicate content between the two documents
+
 ## Documentation update — 25. April 2026, 12:54
 
 README and Manual restructured with a clearer focus on what nicetransfer is and who uses it.
@@ -8,6 +16,8 @@ README and Manual restructured with a clearer focus on what nicetransfer is and 
 - README keeps it short — hook, how it works, features, quick start
 - Manual now clearly separated into server setup and client usage
 - Link from README to the full manual on GitHub
+
+→ [5eea327](https://github.com/joko-zauberzeug/nicetransfer/commit/5eea327dc5437ce556375fc0eb1d3c148a9a0358)
 
 ## Network awareness — 25. April 2026, 12:10
 
