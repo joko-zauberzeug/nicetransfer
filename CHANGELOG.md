@@ -1,0 +1,43 @@
+# Changelog
+
+## v0.4 — 2026-04-25
+
+### Changed
+- Complete UI overhaul using native NiceGUI/Quasar components
+- `ui.header()`, `ui.card()`, `ui.list()`, `ui.item()`, `ui.button_dropdown()`, `ui.tabs()` used throughout
+- Custom CSS reduced to a minimum (logo color, QR code, scroll margin)
+- Quasar color palette instead of custom hex
+- Font: Quasar/Roboto default instead of IBM Plex
+- Section navigation in header as tabs with smooth scroll
+- Hamburger menu as native Quasar dropdown
+
+## v0.3 — 2026-04-25
+
+### New
+- Header navigation with Manual and Changelog
+- Light / Dark / Auto theme toggle
+- File list sorting: Newest, Oldest, A→Z, Z→A
+- Share section toggle
+- Image preview for JPG, PNG, GIF, WebP, SVG
+- CSS extracted to separate file (`nicetransfer.css`)
+
+## v0.2 — 2026-04-25
+
+### New
+- Three separate folders: upload / download / share
+- `config.toml` for persistent configuration
+- Toggle for upload and download (server device only)
+- Token protection with QR code
+- Auto-refresh of file list every 8 seconds
+- Download links in file list
+
+### Changed
+- Default port: 7777 (no conflict with NiceGUI default)
+- Local access (127.0.0.1) does not require a token
+
+## v0.1 — 2026-04-25
+
+### Initial release
+- Upload via browser
+- QR code for easy access
+- File list with auto-refresh

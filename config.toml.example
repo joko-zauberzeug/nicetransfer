@@ -1,0 +1,12 @@
+# nicetransfer configuration
+# Paths: absolute or with ~/ (will be expanded)
+
+[dirs]
+upload   = "~/nicetransfer/upload"
+download = "~/nicetransfer/download"
+share    = "~/nicetransfer/share"
+
+[server]
+port  = 7777
+# token: leave empty = randomly generated on each start; set own value = fixed
+token = ""

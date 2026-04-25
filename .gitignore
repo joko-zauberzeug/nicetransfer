@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Generated at install time — run ./install.sh to create locally
+run.sh
+config.toml
+
+# Transfer data — never commit actual files
+data/upload/*
+data/download/*
+data/share/*
+!data/upload/.gitkeep
+!data/download/.gitkeep
+!data/share/.gitkeep
+
+# macOS
+.DS_Store
