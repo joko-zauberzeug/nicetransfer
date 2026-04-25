@@ -4,7 +4,7 @@ nicetransfer v0.5 — local file transfer via browser
 NiceGUI 3.x
 """
 
-import sys, subprocess, importlib, socket, secrets, argparse, webbrowser, threading, base64
+import sys, subprocess, importlib, socket, secrets, argparse, webbrowser, threading, base64, zipfile
 from pathlib import Path
 from datetime import datetime
 import time as _time
@@ -248,42 +248,7 @@ async def token_guard(request, call_next):
 
 # ── 9. CSS ────────────────────────────────────────────────────────────────────
 
-NT_ORANGE = "#FF6D00"
-
-CSS = """<style>
-  .nt-logo {
-    color: #FF6D00 !important;
-    font-weight: 700;
-    font-size: 2rem;
-    text-decoration: none;
-    letter-spacing: -0.5px;
-  }
-  /* Section title bar */
-  .nt-section-header {
-    background: var(--q-primary) !important;
-    border-radius: 4px 4px 0 0;
-    min-height: 48px;
-  }
-  .nt-section-title {
-    color: #FF6D00 !important;
-    font-size: 1.15rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-  .nt-section { scroll-margin-top: 64px; }
-  .nt-qr { display: flex; justify-content: center; margin: 1rem 0; }
-  .nt-qr svg { background: white; padding: 10px; border-radius: 4px; width: 220px; height: 220px; }
-  .nt-url { font-family: monospace; font-size: 0.9rem; word-break: break-all; }
-  .nt-dl-link { text-decoration: none; color: inherit; }
-  .nt-dl-link:hover { text-decoration: underline; }
-  /* Drag & drop zone */
-  .nt-drop-zone { transition: color 0.15s, background 0.15s; }
-  .q-uploader--dnd .nt-drop-zone { color: #FF6D00 !important; background: rgba(255,109,0,0.06); }
-  /* Upload widget full width */
-  .nt-uploader { width: 100% !important; max-width: 100% !important; }
-  .nt-uploader .q-uploader { width: 100% !important; max-width: 100% !important; box-shadow: none !important; }
-</style>"""
+CSS = '<link rel="stylesheet" href="/nt-static/nicetransfer.css">'
 
 
 # ── 10. File section ──────────────────────────────────────────────────────────
@@ -304,7 +269,14 @@ def make_rows(entries, with_download):
 def build_file_section(title: str, directory: Path, with_upload: bool, with_download: bool, anchor: str):
     entries = file_entries(directory)
     rows = make_rows(entries, with_download)
-    columns = [
+
+    # Download button occupies its own column so it sits between the
+    # native select-all checkbox and the File header in the table head.
+    columns = []
+    if with_download:
+        columns.append({"name": "dl_zip", "label": "", "field": "name",
+                        "sortable": False, "align": "left"})
+    columns += [
         {"name": "name", "label": "File", "field": "name", "sortable": True,  "align": "left"},
         {"name": "size", "label": "Size", "field": "size", "sortable": False, "align": "right"},
         {"name": "time", "label": "Date", "field": "time", "sortable": True,  "align": "right"},
@@ -312,10 +284,12 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
 
     with ui.card().classes("w-full q-pa-none nt-section").props(f'id="{anchor}"'):
 
+        # ── Row 1: centered title ─────────────────────────────────────────────
+        with ui.row().classes("nt-section-header items-center justify-center w-full q-py-sm"):
+            ui.label(title).classes("nt-section-title text-h6")
+
+        # ── Row 2: drop zone + Upload Files (only when upload enabled) ────────
         if with_upload:
-            # ui.upload with custom header slot — Quasar QUploader supports replacing
-            # the header entirely. We put our title + pick-files button there.
-            # The list slot is emptied — we show files in our own table below.
             async def handle_upload(e: events.UploadEventArguments, d=directory):
                 dest = await save_upload(e, d)
                 ui.notify(f"✓ {dest.name}", type="positive")
@@ -323,41 +297,25 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
                 table.rows = new_rows
                 table.update()
 
-            uploader = ui.upload(
-                on_upload=handle_upload,
-                multiple=True,
-                auto_upload=True,
-            ).classes("w-full").props("flat")
+            uploader = ui.upload(on_upload=handle_upload, multiple=True, auto_upload=True) \
+                .classes("w-full").props("flat").style("padding:0; margin:0")
 
-            # Replace the uploader header with our own design
-            # Note: NiceGUI passes slot props as 'props' variable in add_slot templates
-            uploader.add_slot("header", f"""
-                <div class="column w-full">
-                  <div class="nt-section-header row items-center justify-between q-px-md q-py-sm w-full">
-                    <div class="nt-section-title">{title}</div>
-                    <q-btn v-if="props.canAddFiles" flat dense color="grey-5"
-                           icon="add" label="Select files">
-                      <q-uploader-add-trigger />
-                    </q-btn>
-                  </div>
-                  <div class="nt-drop-zone row items-center justify-center text-grey-5 q-pa-sm"
-                       style="font-size:0.82rem; min-height:36px; border-bottom:1px dashed #444">
-                    <q-icon name="upload_file" size="xs" class="q-mr-xs" />
-                    drop files here
+            uploader.add_slot("header", """
+                <div class="nt-drop-zone row items-center justify-center q-py-xs w-full"
+                     style="min-height:40px; border-bottom:1px solid rgba(128,128,128,0.2); gap:12px">
+                  <q-btn v-if="props.canAddFiles" flat dense no-caps
+                         color="grey-5" icon="upload" label="Upload Files">
+                    <q-uploader-add-trigger />
+                  </q-btn>
+                  <div class="row items-center text-body2 text-grey-5" style="gap:4px">
+                    <q-icon name="upload_file" size="sm" />
+                    Drop files here
                   </div>
                 </div>
             """)
-            # Empty list slot — we handle display ourselves
             uploader.add_slot("list", "")
 
-        else:
-            # No upload — just a header bar
-            with ui.row().classes("nt-section-header items-center q-px-md q-py-sm w-full"):
-                ui.label(title).classes("nt-section-title")
-
-        ui.separator()
-
-        # Image preview dialog — Quasar teleports this to <body>, so it overlays everything
+        # ── Image preview dialog ──────────────────────────────────────────────
         with ui.dialog() as img_dialog, ui.card().style(
                 "background:#2a2a2a; padding:0; max-width:95vw; position:relative; overflow:hidden; box-shadow:none"):
             preview_html = ui.html("").style("display:block")
@@ -370,8 +328,8 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
                      ".bmp": "image/bmp", ".svg": "image/svg+xml"}
 
         def handle_preview(ev):
-            url: str = ev.args                         # "/preview/<folder>/<name>"
-            parts = url.lstrip("/").split("/")          # ["preview", folder, name]
+            url: str = ev.args
+            parts = url.lstrip("/").split("/")
             if len(parts) >= 3:
                 _, file_path = _resolve_file(parts[1], parts[2])
                 if file_path:
@@ -383,21 +341,52 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
                     )
             img_dialog.open()
 
-        with ui.column().classes("w-full q-pa-sm").style("gap: 0.5rem"):
+        # ── Search + Table ────────────────────────────────────────────────────
+        with ui.column().classes("w-full q-pa-sm").style("gap:0.5rem"):
             search = ui.input(placeholder="Search...").props("dense outlined clearable").classes("w-full")
 
-            table = ui.table(columns=columns, rows=rows, row_key="name").classes("w-full").props("dense flat")
+            table = ui.table(columns=columns, rows=rows, row_key="name") \
+                .classes("w-full").props("dense flat" + (" selection=multiple" if with_download else ""))
             search.bind_value_to(table, "filter")
 
             table.on("preview", handle_preview)
+
+            if with_download:
+                # Download-ZIP button lives in the header cell of the dl_zip column.
+                # $parent.selected gives us the current selection in the Vue context.
+                table.add_slot("header-cell-dl_zip", """
+                    <q-th :props="props" auto-width>
+                        <q-btn flat dense round size="xs" icon="file_download"
+                               :color="$parent.selected && $parent.selected.length ? 'deep-orange' : 'grey-5'"
+                               :disable="!$parent.selected || !$parent.selected.length"
+                               @click.stop="$parent.$emit('download_zip')" />
+                    </q-th>
+                """)
+                table.add_slot("body-cell-dl_zip", """
+                    <q-td auto-width />
+                """)
+
+                def handle_download_zip(_ev):
+                    if not table.selected:
+                        return
+                    buf = _io.BytesIO()
+                    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+                        for row in table.selected:
+                            fp = directory / row["name"]
+                            if fp.exists() and fp.is_file():
+                                zf.write(fp, row["name"])
+                    buf.seek(0)
+                    ui.download(buf.read(), f"{directory.name}.zip")
+
+                table.on("download_zip", handle_download_zip)
+
             table.add_slot("body-cell-name", """
                 <q-td :props="props">
                     <q-btn v-if="props.row.is_img" flat dense round size="xs"
-                           icon="image" class="q-mr-xs"
-                           style="color: #FF6D00"
+                           icon="image" style="color:var(--nt-orange)" class="q-mr-xs"
                            @click.stop="$parent.$emit('preview', props.row.preview_url)" />
                     <q-btn v-if="props.row.dl_url" flat dense round size="xs"
-                           icon="file_download" color="grey-5" class="q-mr-xs"
+                           icon="file_download" color="deep-orange" class="q-mr-xs"
                            tag="a" :href="props.row.dl_url" @click.stop />
                     <span>{{ props.row.name }}</span>
                 </q-td>
@@ -485,10 +474,10 @@ async def index(request: Request):
                 qr  = make_qr_svg(url) if not no_net else ""
 
                 if no_net:
-                    with ui.card().classes("w-full").style("border-left: 4px solid #FF6D00"):
+                    with ui.card().classes("w-full").style("border-left: 4px solid var(--nt-orange)"):
                         ui.label("⚠  No network — other devices cannot connect") \
                             .classes("text-weight-bold q-mb-sm") \
-                            .style("color: #FF6D00")
+                            .style("color: var(--nt-orange)")
                         ui.markdown(hotspot_hint_md())
 
                 with ui.row().classes("w-full").style("gap: 1.5rem; align-items: flex-start; flex-wrap: wrap"):

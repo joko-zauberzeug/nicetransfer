@@ -1,5 +1,17 @@
 # Changelog
 
+## UI polish: multi-select ZIP download, consistent sizing, CSS extracted — 25. April 2026, 21:43
+
+- Checkboxes in the file list for multi-file selection — native Quasar `selection=multiple`
+- Select-all checkbox in the table header; ZIP download button in the same row (grey when nothing selected, orange when active)
+- Clicking the ZIP button downloads all selected files as a single archive named after the folder
+- Per-file download icons now deep-orange — consistent with the active ZIP button
+- Section titles centered in the header bar
+- Drop zone: "Upload Files" button and "Drop files here" text grouped and centered together
+- Removed the separator line and dead whitespace between the upload zone and the file table
+- CSS moved to `nicetransfer.css`; brand color defined as `--nt-orange` CSS variable — single source of truth
+- Typography switched to Quasar scale: section titles use `text-h6`, drop zone text `text-body2`, upload button default size
+
 ## Drag & drop, image preview, color consistency — 25. April 2026, 14:53
 
 - Drag & drop files directly onto the upload zone — visual highlight while dragging
@@ -8,6 +20,8 @@
 - Root cause of the Firefox download bug: preview icon and filename download link were adjacent tap targets
 - Section title color unified to `#FF6D00` via `.nt-section-title` CSS class — consistent with the logo orange
 - Preview dialog: dark gray background, no padding, no border
+
+→ [e1805e6](https://github.com/joko-zauberzeug/nicetransfer/commit/e1805e68c04a6448566ff6615b6d2556850c0d74)
 
 ## README trimmed, Manual completed — 25. April 2026, 13:13
 
