@@ -307,12 +307,13 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
 
             uploader.add_slot("header", """
                 <div class="nt-drop-zone row items-center justify-center q-py-xs w-full"
-                     style="min-height:40px; border-bottom:1px solid rgba(128,128,128,0.2); gap:12px">
+                     style="min-height:40px; gap:12px">
                   <q-btn v-if="props.canAddFiles" flat dense no-caps
                          color="grey-5" icon="upload" label="Upload files">
                     <q-uploader-add-trigger />
                   </q-btn>
                   <div class="row items-center text-body2 text-grey-5" style="gap:4px">
+                    or
                     <q-icon name="upload_file" size="sm" />
                     Drop files here
                   </div>
@@ -387,12 +388,12 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
 
             table.add_slot("body-cell-name", """
                 <q-td :props="props">
-                    <q-btn v-if="props.row.is_img" flat dense round size="xs"
-                           icon="image" style="color:var(--nt-orange)" class="q-mr-xs"
-                           @click.stop="$parent.$emit('preview', props.row.preview_url)" />
                     <q-btn v-if="props.row.dl_url" flat dense round size="xs"
                            icon="file_download" color="deep-orange" class="q-mr-xs"
                            tag="a" :href="props.row.dl_url" @click.stop />
+                    <q-btn v-if="props.row.is_img" flat dense round size="xs"
+                           icon="image" style="color:var(--nt-orange)" class="q-mr-xs"
+                           @click.stop="$parent.$emit('preview', props.row.preview_url)" />
                     <span>{{ props.row.name }}</span>
                 </q-td>
             """)
@@ -414,18 +415,17 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
 # ── 11. Shared header ─────────────────────────────────────────────────────────
 
 def build_header(is_dark, section_links=None, current=""):
-    with ui.header().classes("items-center q-px-md q-py-sm").props("elevated"):
+    with ui.header().classes("items-center q-px-md q-py-sm nt-header"):
         ui.link("NiceTransfer", "/").classes("nt-logo")
 
         if section_links:
             tab_refs = {}
-            with ui.tabs().props("dense no-caps").classes("text-grey-4"):
+            with ui.tabs().props("dense no-caps").classes("text-grey-7 nt-nav-tabs"):
                 for label, anchor in section_links:
                     t = ui.tab(label).on("click",
                         js_handler=f"() => document.getElementById('{anchor}')?.scrollIntoView({{behavior:'smooth'}})")
                     tab_refs[anchor] = t
 
-            # Map anchor to state key
             anchor_to_key = {
                 "upload":   "upload_enabled",
                 "download": "download_enabled",
@@ -442,7 +442,7 @@ def build_header(is_dark, section_links=None, current=""):
         ui.space()
 
         icon = "dark_mode" if is_dark.value is True else ("light_mode" if is_dark.value is False else "brightness_auto")
-        theme_btn = ui.button(icon=icon).props("flat round dense color=grey-4")
+        theme_btn = ui.button(icon=icon).props("flat round dense color=grey-7")
 
         def toggle_theme():
             if is_dark.value is True:
@@ -454,8 +454,13 @@ def build_header(is_dark, section_links=None, current=""):
 
         theme_btn.on("click", toggle_theme)
 
-        with ui.dropdown_button(icon="menu").props("flat round dense color=grey-4 no-caps"):
+        with ui.dropdown_button(icon="menu").props("flat round dense color=grey-7 no-caps"):
             with ui.list().props("dense"):
+                if section_links:
+                    for label, anchor in section_links:
+                        ui.item(label, on_click=None).classes("nt-menu-section").on("click",
+                            js_handler=f"() => document.getElementById('{anchor}')?.scrollIntoView({{behavior:'smooth'}})")
+                    ui.separator()
                 ui.item("Manual",    on_click=lambda: ui.navigate.to("/manual"))
                 ui.item("Changelog", on_click=lambda: ui.navigate.to("/changelog"))
 

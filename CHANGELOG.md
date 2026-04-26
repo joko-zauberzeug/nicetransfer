@@ -1,8 +1,23 @@
 # Changelog
 
+## Visual overhaul and mobile navigation — 26. April 2026, 11:22
+
+- Inter font self-hosted (OFL) — same typeface as nicegui.io, no external request, works offline
+- Page background: subtle off-white (`#f8fafc`) in light mode; cards lift off with a soft shadow instead of hard borders
+- Frosted glass header — semi-transparent with blur, adapts to light and dark mode
+- Brand orange replaces Quasar blue throughout: `--q-primary` overridden, toggle switches and active indicators now orange
+- All decorative horizontal lines removed — cleaner layout without visual noise
+- Header icons and tabs use `grey-7` — legible on both light and dark backgrounds
+- Drop zone: "Upload files or ↑ Drop files here" — "or" makes the two paths explicit
+- File list icon order: download icon always first, preview icon (images only) second
+- Empty file list text is now muted — less visual weight when no files are present
+- Mobile header: section tabs hidden on small screens, section links added to the hamburger menu instead — nothing gets clipped
+
 ## Platform distribution notes — 25. April 2026, 23:35
 
 - Added `PLATFORMS.md` — feasibility notes for macOS (.app bundle), Linux (AppImage, Flatpak), and Android (Termux)
+
+→ [926553b](https://github.com/joko-zauberzeug/nicetransfer/commit/926553bfa419bac86d93046ad70f3396e797c89c)
 
 ## Manual update — 25. April 2026, 23:15
 
