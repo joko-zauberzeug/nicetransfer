@@ -4,7 +4,7 @@ nicetransfer v0.5 — local file transfer via browser
 NiceGUI 3.x
 """
 
-import sys, subprocess, importlib, socket, secrets, argparse, webbrowser, threading, base64, zipfile, json as _json, asyncio
+import sys, subprocess, importlib, socket, secrets, argparse, webbrowser, threading, base64, zipfile, json as _json, asyncio, os, signal
 from pathlib import Path
 from datetime import datetime
 import time as _time
@@ -113,8 +113,9 @@ DOWNLOAD_DIR = (ARGS.download_dir.expanduser().resolve() if ARGS.download_dir
 SHARE_DIR    = (ARGS.share_dir.expanduser().resolve()    if ARGS.share_dir
                 else cfg_path("share",    str(DATA / "share")))
 TRASH_DIR    = DATA / "trash"
-PORT  = ARGS.port or cfg_int("server", "port", 7777)
-TOKEN = ARGS.token or cfg_str("server", "token", "") or secrets.token_urlsafe(12)
+PORT        = ARGS.port or cfg_int("server", "port", 7777)
+TOKEN       = ARGS.token or cfg_str("server", "token", "") or secrets.token_urlsafe(12)
+TIMEOUT_MIN = cfg_int("server", "timeout", 0)   # 0 = no timeout
 
 for d in [UPLOAD_DIR, DOWNLOAD_DIR, SHARE_DIR, TRASH_DIR]:
     d.mkdir(parents=True, exist_ok=True)
@@ -311,10 +312,9 @@ def trash_entries():
 @app.middleware("http")
 async def token_guard(request, call_next):
     path = request.url.path
-    skip = ["/_nicegui", "/static", "/favicon", "/download", "/nt-static", "/preview"]
+    skip = ["/_nicegui", "/static", "/favicon", "/nt-static"]
     if any(path.startswith(p) for p in skip): return await call_next(request)
     if request.headers.get("upgrade","").lower() == "websocket": return await call_next(request)
-    if is_local(request): return await call_next(request)
     if request.query_params.get("token","") != TOKEN:
         return HTMLResponse(
             "<html><body style='font-family:sans-serif;background:#1d2027;color:#ff6d00;"
@@ -340,7 +340,7 @@ def make_rows(entries, with_download):
             "size":        e["size"],
             "time":        e["time"],
             "is_img":      e["is_img"],
-            "dl_url":      f"/download/{e['dir']}/{e['name']}" if with_download else "",
+            "dl_url":      f"/download/{e['dir']}/{e['name']}?token={TOKEN}" if with_download else "",
             "preview_url": f"/preview/{e['dir']}/{e['name']}"  if e["is_img"]   else "",
         })
     return rows
@@ -681,7 +681,7 @@ def build_trash_section(can_restore: bool = True, can_empty: bool = True):
 # ── 11. Shared header ─────────────────────────────────────────────────────────
 
 def build_header(is_dark, section_links=None, current="", is_local=False):
-    logo_href = "/" if is_local else f"/?token={TOKEN}"
+    logo_href = f"/?token={TOKEN}"
 
     with ui.header().classes("items-center q-px-md q-py-sm nt-header"):
         ui.html(f'<a href="{logo_href}" class="nt-logo">'
@@ -723,8 +723,8 @@ def build_header(is_dark, section_links=None, current="", is_local=False):
                             js_handler=f"() => document.getElementById('{anchor}')?.scrollIntoView({{behavior:'smooth'}})")
                         menu_refs[anchor] = item
                     ui.separator()
-                ui.item("Manual",    on_click=lambda: ui.navigate.to("/manual"))
-                ui.item("Changelog", on_click=lambda: ui.navigate.to("/changelog"))
+                ui.item("Manual",    on_click=lambda: ui.navigate.to(f"/manual?token={TOKEN}"))
+                ui.item("Changelog", on_click=lambda: ui.navigate.to(f"/changelog?token={TOKEN}"))
 
         if section_links:
             # None = always visible; str = state attribute to check
@@ -1020,6 +1020,7 @@ _banner_lines = [
     None,
     f"local   : http://127.0.0.1:{PORT}",
     f"network : {ACCESS_URL}",
+    *([f"timeout : {TIMEOUT_MIN} min"] if TIMEOUT_MIN > 0 else []),
     None,
     "Scan QR code in browser · Ctrl+C to quit",
 ]
@@ -1040,8 +1041,16 @@ if NO_NETWORK:
     print(hotspot_hint_text())
     print()
 
+if TIMEOUT_MIN > 0:
+    def _timeout_shutdown():
+        print(f"\n⏱  Timeout reached ({TIMEOUT_MIN} min) — shutting down.")
+        os.kill(os.getpid(), signal.SIGTERM)
+    _shutdown_timer = threading.Timer(TIMEOUT_MIN * 60, _timeout_shutdown)
+    _shutdown_timer.daemon = True
+    _shutdown_timer.start()
+
 app.on_startup(lambda: threading.Timer(
-    1.5, lambda: webbrowser.open(f"http://localhost:{PORT}")).start())
+    1.5, lambda: webbrowser.open(f"http://localhost:{PORT}/?token={TOKEN}")).start())
 
 ui.run(host="0.0.0.0", port=PORT, title="NiceTransfer",
        favicon="📁", dark=True, reload=False, show=False)

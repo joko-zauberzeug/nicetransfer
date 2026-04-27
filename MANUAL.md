@@ -60,8 +60,9 @@ download = "/path/to/download-folder"
 share    = "/path/to/share-folder"
 
 [server]
-port  = 7777
-token = ""   # empty = randomly generated on each start
+port    = 7777
+token   = ""   # empty = randomly generated on each start
+timeout = 0    # minutes until auto-shutdown; 0 = run indefinitely
 
 [ui]
 theme    = "auto"   # auto (follows OS), light, dark
@@ -168,7 +169,6 @@ While running, the network is checked every 5 seconds. A notification appears in
 
 ## Security
 
-- Access is token-protected — the token is embedded in the QR code URL
+- Access is token-protected everywhere — browser, downloads, previews, and (later) MCP
 - Token regenerates on each start unless a fixed value is set in `config.toml`
-- Local access (`127.0.0.1`) does not require a token
 - The server only binds to the local network — no internet exposure

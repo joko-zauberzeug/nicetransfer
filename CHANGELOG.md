@@ -1,5 +1,16 @@
 # Changelog
 
+## Token everywhere, auto-shutdown timeout — 27. April 2026
+
+- **Token required for all routes** — localhost exception removed; `/download` and `/preview` no longer bypass the token check; every request (browser, download link, preview, future MCP) requires the token
+- `webbrowser.open` on startup now opens `/?token=TOKEN` so the local browser works without manual URL editing
+- Download URLs in file tables include `?token=TOKEN`
+- Manual and Changelog navigation links include the token
+- **Auto-shutdown timeout** — `[server] timeout = 0` in `config.toml`; set to N minutes for automatic shutdown after that duration; `0` = run indefinitely; shown in startup banner when active
+- Manual updated: Security section revised, timeout added to config example
+
+→ [6bb3535](https://github.com/joko-zauberzeug/nicetransfer/commit/6bb3535)
+
 ## Cleanup: install.sh template, dead CSS — 27. April 2026
 
 - `install.sh` now generates a complete `config.toml` including `[ui]` and `[permissions]` sections — fresh installs get correct defaults out of the box
