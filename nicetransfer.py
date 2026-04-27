@@ -4,7 +4,7 @@ nicetransfer v0.5 — local file transfer via browser
 NiceGUI 3.x
 """
 
-import sys, subprocess, importlib, socket, secrets, argparse, webbrowser, threading, base64, zipfile, json as _json
+import sys, subprocess, importlib, socket, secrets, argparse, webbrowser, threading, base64, zipfile, json as _json, asyncio
 from pathlib import Path
 from datetime import datetime
 import time as _time
@@ -127,9 +127,9 @@ class AppState:
         self.upload_enabled   = not ARGS.no_upload   and cfg_bool("ui", "upload",   True)
         self.download_enabled = not ARGS.no_download and cfg_bool("ui", "download", True)
         self.share_enabled    = not ARGS.no_share    and cfg_bool("ui", "share",    True)
-        self.client_delete_upload   = cfg_bool("permissions", "client_delete_upload",   False)
+        self.client_delete_upload   = cfg_bool("permissions", "client_delete_upload",   True)
         self.client_delete_download = cfg_bool("permissions", "client_delete_download", False)
-        self.client_delete_share    = cfg_bool("permissions", "client_delete_share",    False)
+        self.client_delete_share    = cfg_bool("permissions", "client_delete_share",    True)
         self.client_trash_visible   = cfg_bool("permissions", "client_trash_visible",   False)
         self.client_trash_restore   = cfg_bool("permissions", "client_trash_restore",   False)
 
@@ -388,6 +388,13 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
                          color="grey-5" icon="upload" label="Upload files">
                     <q-uploader-add-trigger />
                   </q-btn>
+                  <q-btn v-if="props.canAddFiles" flat dense no-caps
+                         color="grey-5" icon="photo_camera" label="Take photo">
+                    <input type="file" accept="image/*" capture="environment"
+                           class="q-uploader__input overflow-hidden absolute-full cursor-pointer"
+                           aria-hidden="true" title=""
+                           @change="props.addFiles(Array.from($event.target.files)); $event.target.value = ''" />
+                  </q-btn>
                   <div class="row items-center text-body2 text-grey-5" style="gap:4px">
                     or
                     <q-icon name="upload_file" size="sm" />
@@ -426,6 +433,18 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
         # ── Search + Table ────────────────────────────────────────────────────
         with ui.column().classes("w-full q-pa-sm").style("gap:0.5rem"):
             search = ui.input(placeholder="Search...").props("dense outlined clearable").classes("w-full")
+
+            if with_delete:
+                _undo: dict = {"names": [], "task": None}
+                with ui.row().classes("items-center q-px-xs q-py-xs").style(
+                        "gap:0.5rem; background:rgba(255,109,0,0.08); border-radius:4px") as undo_bar:
+                    undo_label = ui.label("").classes("text-body2 text-grey-8").style("flex:1; min-width:0")
+                    ui.button("Undo", on_click=lambda: do_undo()) \
+                        .props("flat dense no-caps size=sm color=deep-orange")
+                    ui.button(icon="close", on_click=lambda: dismiss_undo()) \
+                        .props("flat round dense size=xs color=grey-5") \
+                        .tooltip("Dismiss")
+                undo_bar.set_visibility(False)
 
             table = ui.table(columns=columns, rows=rows, row_key="name") \
                 .classes("w-full").props("dense flat" + (" selection=multiple" if has_actions else ""))
@@ -476,17 +495,53 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
                     table.on("download_zip", handle_download_zip)
 
                 if with_delete:
-                    def handle_delete_selected(_ev, d=directory):
+                    def do_undo(d=directory):
+                        if not _undo["names"]:
+                            return
+                        count = 0
+                        for name in list(_undo["names"]):
+                            if restore_from_trash(name):
+                                count += 1
+                        _undo["names"] = []
+                        if _undo["task"]:
+                            _undo["task"].cancel()
+                            _undo["task"] = None
+                        undo_bar.set_visibility(False)
+                        if count:
+                            ui.notify(f"Restored {count} file(s)", type="positive", icon="restore")
+                            table.rows = make_rows(file_entries(d), with_download)
+                            table.update()
+
+                    def dismiss_undo():
+                        _undo["names"] = []
+                        if _undo["task"]:
+                            _undo["task"].cancel()
+                            _undo["task"] = None
+                        undo_bar.set_visibility(False)
+
+                    async def handle_delete_selected(_ev, d=directory):
                         if not table.selected:
                             return
+                        names = []
                         count = 0
                         for row in list(table.selected):
                             fp = d / row["name"]
                             if fp.exists() and fp.is_file():
-                                move_to_trash(fp, d.name)
+                                trash_path = move_to_trash(fp, d.name)
+                                names.append(trash_path.name)
                                 count += 1
                         if count:
-                            ui.notify(f"Moved {count} file(s) to trash", type="warning", icon="delete")
+                            _undo["names"] = names
+                            if _undo["task"]:
+                                _undo["task"].cancel()
+
+                            async def auto_dismiss():
+                                await asyncio.sleep(10)
+                                dismiss_undo()
+
+                            _undo["task"] = asyncio.create_task(auto_dismiss())
+                            undo_label.set_text(f"{count} file(s) moved to trash")
+                            undo_bar.set_visibility(True)
                             table.selected.clear()
                             table.rows = make_rows(file_entries(d), with_download)
                             table.update()
@@ -742,7 +797,29 @@ async def index(request: Request):
                             ).classes("text-h3 text-weight-bold")
                             with ui.element("div").classes("nt-qr-hero"):
                                 ui.html(qr)
-                            ui.label(url).classes("nt-url")
+                            with ui.row().classes("items-center justify-center").style("gap:0.25rem"):
+                                ui.label(url).classes("nt-url")
+
+                                async def do_copy(u=url):
+                                    await ui.run_javascript(
+                                        f"navigator.clipboard.writeText({_json.dumps(u)})")
+                                    ui.notify("URL copied", type="positive", timeout=1500)
+
+                                ui.button(icon="content_copy", on_click=do_copy) \
+                                    .props("flat round dense size=xs color=grey-5") \
+                                    .tooltip("Copy URL")
+                                with ui.element("span").classes("nt-share-wrap"):
+                                    ui.button(icon="share") \
+                                        .props("flat round dense size=xs color=grey-5") \
+                                        .tooltip("Share") \
+                                        .on("click", js_handler=(
+                                            f"() => navigator.share({{title:'NiceTransfer',"
+                                            f"url:{_json.dumps(url)}}})"
+                                        ))
+                                ui.run_javascript(
+                                    "document.querySelectorAll('.nt-share-wrap')"
+                                    ".forEach(e => { if (!navigator.share) e.style.display='none' })"
+                                )
                             ui.label("Scan QR code to connect").classes("text-h5")
                     ui.icon("keyboard_arrow_down").props("size=2rem color=grey-5") \
                         .classes("nt-scroll-hint")
@@ -768,6 +845,7 @@ async def index(request: Request):
 
                         ui.label("Client permissions").classes("text-overline text-grey q-mt-sm")
                         ui.separator()
+                        _restore_ref = {}
                         for label, key in [
                             ("Client can delete — Upload only",   "client_delete_upload"),
                             ("Client can delete — Download only", "client_delete_download"),
@@ -775,11 +853,28 @@ async def index(request: Request):
                             ("Clients see Trash",                 "client_trash_visible"),
                             ("Clients can restore from Trash",    "client_trash_restore"),
                         ]:
-                            with ui.row().classes("items-center justify-between w-full q-py-xs"):
-                                ui.label(label)
+                            indent = key == "client_trash_restore"
+                            row = ui.row().classes("items-center justify-between w-full q-py-xs")
+                            if indent:
+                                row.style("padding-left: 1.25rem")
+                            with row:
+                                lbl = ui.label(label)
                                 _key = key
-                                ui.switch(value=getattr(state, _key),
-                                    on_change=lambda e, k=_key: setattr(state, k, e.value))
+                                if key == "client_trash_visible":
+                                    def on_trash_visible(e, r=_restore_ref):
+                                        state.client_trash_visible = e.value
+                                        if "lbl" in r:
+                                            r["lbl"].style("opacity:1" if e.value else "opacity:0.38")
+                                    ui.switch(value=state.client_trash_visible, on_change=on_trash_visible)
+                                elif key == "client_trash_restore":
+                                    _restore_ref["lbl"] = lbl
+                                    lbl.style("opacity:1" if state.client_trash_visible else "opacity:0.38")
+                                    ui.switch(value=state.client_trash_restore,
+                                        on_change=lambda e: setattr(state, "client_trash_restore", e.value)) \
+                                        .bind_enabled_from(state, "client_trash_visible")
+                                else:
+                                    ui.switch(value=getattr(state, _key),
+                                        on_change=lambda e, k=_key: setattr(state, k, e.value))
                             ui.separator().props("spaced=false")
 
             local_panel()

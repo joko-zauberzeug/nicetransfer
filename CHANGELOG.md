@@ -1,5 +1,15 @@
 # Changelog
 
+## Undo delete, camera upload, default client permissions — 27. April 2026
+
+- **Undo last delete** — after moving files to Trash an undo bar appears in the section ("N file(s) moved to trash" + Undo + ✕ dismiss); auto-dismisses after 10 seconds; per-section and per-client; works even when Trash is not visible to the client
+- `asyncio.create_task` + `asyncio.sleep(10)` for cancellable auto-dismiss; undo handler runs synchronously in the click context to keep `ui.notify` working
+- **Camera capture** — "Take photo" button in upload sections alongside "Upload files"; uses `<input capture="environment">` — opens camera directly on mobile, image file picker on desktop; files are passed to the Quasar uploader via `props.addFiles()` and auto-uploaded
+- **Default client permissions** — `client_delete_upload` and `client_delete_share` now default to `true`; clients can delete in Upload and Share by default; Download deletion and Trash access remain off
+- Manual updated: undo, camera, updated permissions defaults and description
+
+→ [6014249](https://github.com/joko-zauberzeug/nicetransfer/commit/6014249)
+
 ## Trash, hero landing page, navigation overhaul and typography — 27. April 2026, 13:57
 
 - **Trash section** — deleted files move to Trash instead of being removed permanently; sidecar `.meta` files store original name and source section
@@ -16,6 +26,8 @@
 - Logo link includes token for clients so clicking it never drops the session
 - Hamburger menu items synced with tab visibility via shared timer — disabled sections disappear from both
 - Manual updated: Trash, delete, client permissions, `[permissions]` config block, `pkill` stop command
+
+→ [ec3a46a](https://github.com/joko-zauberzeug/nicetransfer/commit/ec3a46a)
 
 ## AI integration concept documented — 27. April 2026, 08:11
 

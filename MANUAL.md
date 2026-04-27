@@ -13,6 +13,8 @@ NiceTransfer is built on [NiceGUI](https://nicegui.io) by Zauberzeug GmbH.
 - Toggle sections on and off at runtime without restarting
 - Select multiple files and download them as a ZIP archive
 - Delete selected files — moves them to Trash; server always has this capability, clients only when permitted
+- **Undo last delete** — an undo bar appears after each delete batch with a 10-second window to reverse it; per-section, per-client, works regardless of Trash visibility
+- **Camera capture** — "Take photo" button in upload sections opens the camera directly on mobile; image picker on desktop
 - File list updates live across all connected devices — no manual refresh needed
 - Token-protected access via QR code
 - Image preview for JPG, PNG, GIF, WebP, SVG
@@ -68,14 +70,14 @@ download = false    # show Download section on startup
 share    = true     # show Share section on startup
 
 [permissions]
-client_delete_upload   = false  # clients may delete files in Upload only
+client_delete_upload   = true   # clients may delete files in Upload only
 client_delete_download = false  # clients may delete files in Download only
-client_delete_share    = false  # clients may delete files in Share
+client_delete_share    = true   # clients may delete files in Share
 client_trash_visible   = false  # clients can see the Trash section
 client_trash_restore   = false  # clients can restore files from Trash
 ```
 
-The `[permissions]` defaults give clients read/upload access only. The server device always has full delete and trash access regardless of these settings.
+By default, clients can delete in Upload and Share sections; Download deletion and Trash access remain restricted. The server device always has full delete and trash access regardless of these settings.
 
 To customize colors and other visual details, edit `nicetransfer.css`.
 
@@ -111,6 +113,7 @@ Open `http://localhost:7777` on the server device. The page opens with a full-sc
 - **Multi-file selection** — checkboxes in the file list; top checkbox selects all
 - **ZIP download** — select files and click the download icon in the table header
 - **Delete** — select files and click the trash icon to move them to Trash
+- **Undo** — an undo bar appears immediately after deletion; click **Undo** within 10 seconds to restore the batch, or ✕ to dismiss early
 - **Image preview** — click the image icon next to image files to preview in the browser
 - **Per-file download** — click the download icon next to any file
 - **Theme toggle** — Auto / Light / Dark
