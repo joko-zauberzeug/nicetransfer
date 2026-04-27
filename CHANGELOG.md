@@ -1,5 +1,22 @@
 # Changelog
 
+## Trash, hero landing page, navigation overhaul and typography — 27. April 2026, 13:57
+
+- **Trash section** — deleted files move to Trash instead of being removed permanently; sidecar `.meta` files store original name and source section
+- `move_to_trash()`, `restore_from_trash()`, `trash_entries()` helpers; timestamp-prefix naming avoids conflicts
+- Trash section: select files to restore (↩) or delete forever (🗑); live sync like all other sections
+- **Client delete permissions**: per-section toggles in Control panel — server always has delete, clients only when permitted
+- `[permissions]` block in `config.toml`; 5 new AppState fields
+- **Tooltips** on all icon-only buttons (download, preview, trash, restore, delete forever, theme toggle)
+- **Hero landing page**: Connection section is now full-viewport — large QR code (300 px), bold H3 slogan "Simple and **NiceTransfer** of files.", H5 call-to-action "Scan QR code to connect", animated scroll-down arrow
+- **Header navigation**: Connection and Control appear as tabs for local users; stacked layout so Connection is above the fold and Control requires a short scroll
+- **Control section** styled like all other sections — centered orange H5 title, same card pattern
+- All section titles bumped to H5
+- Logo: **Nice** bold + Transfer regular, no negative letter-spacing
+- Logo link includes token for clients so clicking it never drops the session
+- Hamburger menu items synced with tab visibility via shared timer — disabled sections disappear from both
+- Manual updated: Trash, delete, client permissions, `[permissions]` config block, `pkill` stop command
+
 ## AI integration concept documented — 27. April 2026, 08:11
 
 - Added `MCP.md` — concept and research notes for AI integration
@@ -8,6 +25,17 @@
 - `claude mcp add --transport http nicetransfer http://localhost:7777` — the actual add command, no JSON editing
 - Token independence: localhost needs no token; fixed token in `config.toml` for persistent remote MCP
 - QR code stays unchanged — AI derives `/.well-known/mcp` from base URL by convention
+
+→ [9c46b53](https://github.com/joko-zauberzeug/nicetransfer/commit/9c46b532c4a31918d9d4a0a2186e8a2873f889d3)
+
+## MCP.md: HTML meta tag discovery — 27. April 2026, 08:26
+
+- HTML `<meta>` tags in `<head>` as alternative to well-known URL convention
+- Claude fetches URL → reads `<head>` → finds MCP pointer → no prior knowledge needed
+- Why not HTTP headers: AI tools process HTML content, not raw HTTP headers
+- NiceGUI's `ui.add_head_html()` makes dynamic injection trivial
+
+→ [3f15bac](https://github.com/joko-zauberzeug/nicetransfer/commit/3f15bac4efe31a686f807f98fa173f7bd215e42c)
 
 ## Visual overhaul and mobile navigation — 26. April 2026, 11:22
 

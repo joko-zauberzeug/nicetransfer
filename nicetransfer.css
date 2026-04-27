@@ -40,10 +40,8 @@ body, .q-body, .nicegui-content {
 /* ── Logo ── */
 .nt-logo {
   color: var(--nt-orange) !important;
-  font-weight: 700;
   font-size: 2rem;
   text-decoration: none;
-  letter-spacing: -0.5px;
 }
 
 /* ── App header ── */
@@ -106,9 +104,47 @@ body, .q-body, .nicegui-content {
   border: none !important;
 }
 
-/* ── QR code ── */
+/* ── QR code (inline, small) ── */
 .nt-qr { display: flex; justify-content: center; margin: 1rem 0; }
 .nt-qr svg { background: white; padding: 10px; border-radius: 4px; width: 220px; height: 220px; }
+
+/* ── Hero section (Connection landing) ── */
+.nt-hero {
+  position: relative;
+  min-height: calc(100vh - 56px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nt-hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+  padding: 2rem 1rem;
+}
+.nt-qr-hero { display: flex; justify-content: center; }
+.nt-qr-hero svg {
+  background: white;
+  padding: 14px;
+  border-radius: 12px;
+  width: 300px;
+  height: 300px;
+  box-shadow: 0 6px 32px rgba(0, 0, 0, 0.12);
+}
+.nt-scroll-hint {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0.25;
+  animation: nt-bounce 2s ease-in-out infinite;
+}
+@keyframes nt-bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0);   }
+  50%       { transform: translateX(-50%) translateY(6px); }
+}
 
 /* ── URL display ── */
 .nt-url { font-family: monospace; word-break: break-all; }

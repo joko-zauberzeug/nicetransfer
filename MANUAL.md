@@ -8,9 +8,11 @@ NiceTransfer is built on [NiceGUI](https://nicegui.io) by Zauberzeug GmbH.
 
 ## Features
 
-- Three sections: **Upload only**, **Download only**, **Share** (bidirectional)
+- Three file sections: **Upload only**, **Download only**, **Share** (bidirectional)
+- **Trash** section — deleted files are moved to trash, not permanently removed; restore or delete forever per selection
 - Toggle sections on and off at runtime without restarting
 - Select multiple files and download them as a ZIP archive
+- Delete selected files — moves them to Trash; server always has this capability, clients only when permitted
 - File list updates live across all connected devices — no manual refresh needed
 - Token-protected access via QR code
 - Image preview for JPG, PNG, GIF, WebP, SVG
@@ -64,7 +66,16 @@ theme    = "auto"   # auto (follows OS), light, dark
 upload   = false    # show Upload section on startup
 download = false    # show Download section on startup
 share    = true     # show Share section on startup
+
+[permissions]
+client_delete_upload   = false  # clients may delete files in Upload only
+client_delete_download = false  # clients may delete files in Download only
+client_delete_share    = false  # clients may delete files in Share
+client_trash_visible   = false  # clients can see the Trash section
+client_trash_restore   = false  # clients can restore files from Trash
 ```
+
+The `[permissions]` defaults give clients read/upload access only. The server device always has full delete and trash access regardless of these settings.
 
 To customize colors and other visual details, edit `nicetransfer.css`.
 
@@ -80,18 +91,35 @@ To customize colors and other visual details, edit `nicetransfer.css`.
 
 The default sections and theme are read from `config.toml`. Command-line flags always take precedence over the config file.
 
+### Stopping
+
+```bash
+pkill -f nicetransfer.py
+```
+
 ### Control panel
 
-Open `http://localhost:7777` on the server device to access the control panel:
+Open `http://localhost:7777` on the server device. The page opens with a full-screen hero showing the QR code. Scroll down to reach the control panel and file sections.
 
-- **QR code and network URL** — share with clients or scan directly
+**Connection** — QR code and network URL; scan with any device on the same Wi-Fi to connect.
+
+**Control** — runtime settings:
+
 - **Section toggles** — enable/disable Upload, Download, Share at runtime
+- **Client permissions** — grant clients the ability to delete files per section, see Trash, or restore from Trash
 - **Sortable file list** — click column headers to sort
 - **Multi-file selection** — checkboxes in the file list; top checkbox selects all
 - **ZIP download** — select files and click the download icon in the table header
+- **Delete** — select files and click the trash icon to move them to Trash
 - **Image preview** — click the image icon next to image files to preview in the browser
 - **Per-file download** — click the download icon next to any file
 - **Theme toggle** — Auto / Light / Dark
+
+**Trash** — shows all deleted files with their original name and source section:
+
+- Select files and click **Restore** (↩) to move them back to their original section
+- Select files and click **Delete forever** (🗑) to remove them permanently
+- Files in Trash do not count toward section file lists
 
 ---
 
@@ -110,15 +138,16 @@ To connect manually: open the network URL shown on the server (e.g. `http://192.
 
 ## Sections
 
-Each section controls which operations are available. All connected devices — including the server — have equal access.
+Each section controls which operations are available.
 
-| Section | Upload | Download |
-|---------|--------|----------|
-| **Upload only** | ✓ | — |
-| **Download only** | — | ✓ |
-| **Share** | ✓ | ✓ |
+| Section | Upload | Download | Delete |
+|---------|--------|----------|--------|
+| **Upload only** | ✓ | — | server always; clients if permitted |
+| **Download only** | — | ✓ | server always; clients if permitted |
+| **Share** | ✓ | ✓ | server always; clients if permitted |
+| **Trash** | — | — | restore or delete forever |
 
-Sections can be enabled or disabled at runtime via the control panel without restarting the server.
+Sections can be enabled or disabled at runtime via the control panel without restarting the server. Deleted files are always moved to Trash first — nothing is removed immediately.
 
 ---
 
