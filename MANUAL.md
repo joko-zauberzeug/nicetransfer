@@ -167,8 +167,29 @@ While running, the network is checked every 5 seconds. A notification appears in
 
 ---
 
+## AI integration
+
+NiceTransfer embeds AI discovery hints in every page. When an AI app (e.g. Claude) scans the QR code and fetches the URL, it finds the following in the HTML `<head>`:
+
+```html
+<meta name="mcp-server"      content="http://192.168.x.x:7777/mcp?token=...">
+<meta name="mcp-server-card" content="http://192.168.x.x:7777/.well-known/mcp/server-card.json?token=...">
+<meta name="llms-txt"        content="http://192.168.x.x:7777/llms.txt?token=...">
+```
+
+Two additional endpoints are available (both token-protected):
+
+| Endpoint | Content |
+|----------|---------|
+| `/.well-known/mcp/server-card.json` | Machine-readable capability description (JSON) |
+| `/llms.txt` | Plain-text description of tools and API for AI assistants |
+
+The MCP endpoint (`/mcp`) is not yet implemented — the discovery layer is in place for when it is.
+
+---
+
 ## Security
 
-- Access is token-protected everywhere — browser, downloads, previews, and (later) MCP
+- Access is token-protected everywhere — browser, downloads, previews, AI discovery endpoints
 - Token regenerates on each start unless a fixed value is set in `config.toml`
 - The server only binds to the local network — no internet exposure

@@ -1,5 +1,16 @@
 # Changelog
 
+## AI discovery layer — 27. April 2026
+
+- **Meta tags in `<head>`** — every page includes `mcp-server`, `mcp-server-card`, and `llms-txt` meta tags with full token-bearing URLs; an AI app that scans the QR code and fetches the page immediately knows how to connect
+- **`/.well-known/mcp/server-card.json`** — machine-readable capability description: name, version, MCP endpoint, transport, authentication, active sections, tool list
+- **`/llms.txt`** — plain-text description for AI assistants; lists active sections and available tools
+- Both endpoints are token-protected (consistent with all other routes); the AI has the token from the QR URL
+- MCP endpoint (`/mcp`) not yet implemented — discovery layer is in place for when it is
+- Manual: new AI integration section
+
+→ [bd9a9b4](https://github.com/joko-zauberzeug/nicetransfer/commit/bd9a9b4)
+
 ## Token everywhere, auto-shutdown timeout — 27. April 2026
 
 - **Token required for all routes** — localhost exception removed; `/download` and `/preview` no longer bypass the token check; every request (browser, download link, preview, future MCP) requires the token

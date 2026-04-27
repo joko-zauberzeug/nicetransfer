@@ -46,7 +46,7 @@ check_deps()
 
 from nicegui import ui, app, events
 from starlette.requests import Request
-from starlette.responses import FileResponse, Response, HTMLResponse
+from starlette.responses import FileResponse, Response, HTMLResponse, JSONResponse, PlainTextResponse
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -754,6 +754,11 @@ def build_header(is_dark, section_links=None, current="", is_local=False):
 async def index(request: Request):
     local = is_local(request)
     ui.add_head_html(CSS)
+    ui.add_head_html(
+        f'<meta name="mcp-server" content="http://{LOCAL_IP}:{PORT}/mcp?token={TOKEN}">\n'
+        f'<meta name="mcp-server-card" content="http://{LOCAL_IP}:{PORT}/.well-known/mcp/server-card.json?token={TOKEN}">\n'
+        f'<meta name="llms-txt" content="http://{LOCAL_IP}:{PORT}/llms.txt?token={TOKEN}">'
+    )
     is_dark = ui.dark_mode(value=cfg_theme())
 
     # Build header — local gets Connection + Control tabs in addition to file sections
@@ -1009,7 +1014,52 @@ async def preview_file(folder: str, filename: str):
     return FileResponse(path=file_path, media_type=mime)
 
 
-# ── 15. Banner & Start ────────────────────────────────────────────────────────
+# ── 15. AI discovery endpoints ────────────────────────────────────────────────
+
+@app.get("/.well-known/mcp/server-card.json")
+async def mcp_server_card():
+    sections = [s for s, on in [("upload",   state.upload_enabled),
+                                 ("download", state.download_enabled),
+                                 ("share",    state.share_enabled)] if on]
+    return JSONResponse({
+        "name":        "NiceTransfer",
+        "description": "Local file transfer hub — upload, download and share files on the local network via browser.",
+        "version":     "0.5",
+        "url":         f"http://{LOCAL_IP}:{PORT}",
+        "mcp": {
+            "endpoint":       f"http://{LOCAL_IP}:{PORT}/mcp",
+            "transport":      "streamable-http",
+            "authentication": {"type": "query-param", "param": "token"},
+        },
+        "capabilities": {
+            "sections": sections,
+            "tools":    ["get_status", "list_files", "upload_file", "download_file"],
+        },
+    })
+
+@app.get("/llms.txt")
+async def llms_txt():
+    sections = [s for s, on in [("upload",   state.upload_enabled),
+                                 ("download", state.download_enabled),
+                                 ("share",    state.share_enabled)] if on]
+    return PlainTextResponse(
+        f"# NiceTransfer\n\n"
+        f"Local file transfer hub. Transfer files between devices on the same Wi-Fi network via browser.\n\n"
+        f"## MCP Integration\n\n"
+        f"MCP endpoint : http://{LOCAL_IP}:{PORT}/mcp\n"
+        f"Transport    : Streamable HTTP (MCP spec 2025-03-26)\n"
+        f"Auth         : query parameter ?token=<token>  (token shown in QR code URL and server banner)\n\n"
+        f"## Active sections\n\n"
+        f"{', '.join(sections) if sections else 'none'}\n\n"
+        f"## Tools\n\n"
+        f"get_status()                              — server URL, active sections\n"
+        f"list_files(section)                       — list files in a section\n"
+        f"upload_file(section, filename, content)   — upload a file (base64 content)\n"
+        f"download_file(section, filename)          — download a file (returns base64)\n"
+    )
+
+
+# ── 16. Banner & Start ────────────────────────────────────────────────────────
 
 _banner_lines = [
     "NiceTransfer v0.5",
