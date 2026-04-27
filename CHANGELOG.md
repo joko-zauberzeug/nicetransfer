@@ -1,5 +1,14 @@
 # Changelog
 
+## AI integration concept documented — 27. April 2026, 08:11
+
+- Added `MCP.md` — concept and research notes for AI integration
+- Three tiers: one-command MCP registration, in-chat paste, QR-based auto-discovery
+- Aligned with 2026 standards: Streamable HTTP MCP at `/mcp`, Server Cards at `/.well-known/mcp/server-card.json`, OpenAPI at `/openapi.json`, `llms.txt`
+- `claude mcp add --transport http nicetransfer http://localhost:7777` — the actual add command, no JSON editing
+- Token independence: localhost needs no token; fixed token in `config.toml` for persistent remote MCP
+- QR code stays unchanged — AI derives `/.well-known/mcp` from base URL by convention
+
 ## Visual overhaul and mobile navigation — 26. April 2026, 11:22
 
 - Inter font self-hosted (OFL) — same typeface as nicegui.io, no external request, works offline
@@ -12,6 +21,8 @@
 - File list icon order: download icon always first, preview icon (images only) second
 - Empty file list text is now muted — less visual weight when no files are present
 - Mobile header: section tabs hidden on small screens, section links added to the hamburger menu instead — nothing gets clipped
+
+→ [94dfe26](https://github.com/joko-zauberzeug/nicetransfer/commit/94dfe2607f364a5bb466c51b6fc90cfbf3e4c43c)
 
 ## Platform distribution notes — 25. April 2026, 23:35
 
