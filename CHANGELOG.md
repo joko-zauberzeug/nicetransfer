@@ -1,5 +1,12 @@
 # Changelog
 
+## Cleanup: install.sh template, dead CSS — 27. April 2026
+
+- `install.sh` now generates a complete `config.toml` including `[ui]` and `[permissions]` sections — fresh installs get correct defaults out of the box
+- Removed unused `.nt-qr` CSS rule (small 220 px QR, superseded by `.nt-qr-hero`)
+
+→ [0a8ee3b](https://github.com/joko-zauberzeug/nicetransfer/commit/0a8ee3b)
+
 ## Undo delete, camera upload, default client permissions — 27. April 2026
 
 - **Undo last delete** — after moving files to Trash an undo bar appears in the section ("N file(s) moved to trash" + Undo + ✕ dismiss); auto-dismisses after 10 seconds; per-section and per-client; works even when Trash is not visible to the client

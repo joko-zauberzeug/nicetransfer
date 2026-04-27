@@ -73,6 +73,23 @@ share    = "$DATA_DIR/share"
 port  = 7777
 # token: leave empty = randomly generated on each start; set own value = fixed
 token = ""
+
+[ui]
+# theme: auto (follows OS setting), light, dark
+theme    = "auto"
+# sections to show on startup (can still be toggled at runtime)
+upload   = false
+download = false
+share    = true
+
+[permissions]
+# Whether clients (non-local) may delete files in each section
+client_delete_upload   = true
+client_delete_download = false
+client_delete_share    = true
+# Whether clients can see the Trash section and restore files from it
+client_trash_visible   = false
+client_trash_restore   = false
 EOF
     echo "✓ config.toml created"
 else

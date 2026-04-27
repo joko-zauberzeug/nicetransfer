@@ -104,10 +104,6 @@ body, .q-body, .nicegui-content {
   border: none !important;
 }
 
-/* ── QR code (inline, small) ── */
-.nt-qr { display: flex; justify-content: center; margin: 1rem 0; }
-.nt-qr svg { background: white; padding: 10px; border-radius: 4px; width: 220px; height: 220px; }
-
 /* ── Hero section (Connection landing) ── */
 .nt-hero {
   position: relative;
