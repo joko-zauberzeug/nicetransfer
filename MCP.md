@@ -68,6 +68,28 @@ QR codes have practical size limits. A URL fits; a full description does not.
 Multi-record QR codes (`WEB:... AI:...`) are not reliably parsed by iOS/Android
 standard readers — they either show raw text or only parse the first record.
 
+### Discovery via HTML meta tags
+
+An alternative to the well-known URL convention: embed the MCP pointer directly
+in the HTML `<head>` of the NiceTransfer page — invisible to users, but present
+in the HTML source that any AI tool fetching the URL will see:
+
+```html
+<meta name="mcp-server" content="http://192.168.x.x:7777/mcp">
+<meta name="mcp-server-card" content="http://192.168.x.x:7777/.well-known/mcp/server-card.json">
+```
+
+This means: Claude fetches the URL (from QR code or manual entry) → reads the
+`<head>` → finds the MCP server link → knows immediately how to interact with
+NiceTransfer. No separate discovery step, no convention to know in advance.
+
+Note: HTTP response headers (e.g. `X-MCP-Server: ...`) would be conceptually
+similar but don't work in practice — most AI tools process HTML content, not raw
+HTTP headers. Meta tags are the right level.
+
+NiceGUI makes this trivial: `ui.add_head_html()` can inject the tags dynamically
+with the current network IP and token on each page load.
+
 ---
 
 ## Endpoints NiceTransfer would expose
