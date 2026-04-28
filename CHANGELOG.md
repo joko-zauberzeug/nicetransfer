@@ -1,9 +1,16 @@
 # Changelog
 
+## Banner and Manual: token in local URL — Joko, 29. April 2026, 00:26
+
+- **Banner** — `local` line now shows `http://127.0.0.1:PORT/?token=...`; token is required for localhost too, the old URL without token didn't work
+- **Manual** — "Control panel" section updated to match: now refers to the banner's local URL instead of a hardcoded tokenless `http://localhost:7777`
+
 ## Screenshots in README — Joko, 28. April 2026, 23:12
 
 - Three screenshots added to `screenshots/`: server QR-code hero (desktop), client landscape with file list and menu, client dark mode
 - README: Screenshots section added directly above Installation
+
+→ [50592e7](https://github.com/joko-zauberzeug/nicetransfer/commit/50592e7)
 
 ## v1.1 — Share first, /get page, source download — Joko, 28. April 2026, 21:49
 

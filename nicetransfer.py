@@ -1421,7 +1421,7 @@ _banner_lines = [
     f"download: {DOWNLOAD_DIR}",
     f"share   : {SHARE_DIR}",
     None,
-    f"local   : http://127.0.0.1:{PORT}",
+    f"local   : http://127.0.0.1:{PORT}/?token={TOKEN}",
     f"network : {ACCESS_URL}",
     f"mcp     : {_MCP_URL}",
     f"llms    : http://127.0.0.1:{PORT}/llms.txt?token={TOKEN}",

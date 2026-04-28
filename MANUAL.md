@@ -102,7 +102,7 @@ pkill -f nicetransfer.py
 
 ### Control panel
 
-Open `http://localhost:7777` on the server device. The page opens with a full-screen hero showing the QR code. Scroll down to reach the control panel and file sections.
+Open the local URL shown in the banner (e.g. `http://127.0.0.1:7777/?token=...`) on the server device. The page opens with a full-screen hero showing the QR code. Scroll down to reach the control panel and file sections.
 
 **Connection** — QR code and network URL; scan with any device on the same Wi-Fi to connect.
 
