@@ -1,5 +1,10 @@
 # Changelog
 
+## Screenshots in README — Joko, 28. April 2026, 23:12
+
+- Three screenshots added to `screenshots/`: server QR-code hero (desktop), client landscape with file list and menu, client dark mode
+- README: Screenshots section added directly above Installation
+
 ## v1.1 — Share first, /get page, source download — Joko, 28. April 2026, 21:49
 
 - **v1.1** — version bump; version constant now used in banner, footer, ZIP filename, and server-card.json
@@ -11,6 +16,8 @@
 - **"Get" added to dropdown menu**
 - **`/llms.txt` and `/llms-local.txt`** — now document all human-readable pages (`/manual`, `/changelog`, `/get`) and all source/license download endpoints
 - **Manual** — section order updated to Share-first throughout (features list, sections table)
+
+→ [46caf2b](https://github.com/joko-zauberzeug/nicetransfer/commit/46caf2b)
 
 ## Hero layout, color consistency, Manual polish — Joko, 28. April 2026, 19:36
 

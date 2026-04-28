@@ -18,6 +18,12 @@ Nothing to install on the client side.
 
 → [Full manual](MANUAL.md)
 
+## Screenshots
+
+<img src="screenshots/server-hero.png" width="800" alt="Server — QR code hero">
+<img src="screenshots/client-landscape.png" width="800" alt="Client — landscape with file list">
+<img src="screenshots/client-dark.png" width="360" alt="Client — dark mode">
+
 ## Installation
 
 ```bash
