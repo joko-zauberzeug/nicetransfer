@@ -70,9 +70,11 @@ download = "$DATA_DIR/download"
 share    = "$DATA_DIR/share"
 
 [server]
-port  = 7777
+port    = 7777
 # token: leave empty = randomly generated on each start; set own value = fixed
-token = ""
+token   = ""
+# timeout in minutes; 0 = run indefinitely
+timeout = 0
 
 [ui]
 # theme: auto (follows OS setting), light, dark

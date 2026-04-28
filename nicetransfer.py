@@ -1079,6 +1079,15 @@ async def llms_txt():
         f"  mcp     : http://127.0.0.1:{PORT}/mcp?token=<token>\n\n"
         f"Extract that URL. It is valid for the lifetime of this process.\n"
         f"Use it directly for MCP calls — no registration or configuration needed.\n\n"
+        f"### Restarting NiceTransfer\n\n"
+        f"To restart reliably, wait until the old process is gone before starting a new one:\n\n"
+        f"  pkill -f nicetransfer.py 2>/dev/null\n"
+        f"  while pgrep -f nicetransfer.py > /dev/null 2>&1; do sleep 0.1; done\n"
+        f"  bash {SCRIPT_DIR}/run.sh\n\n"
+        f"Do not use a fixed sleep — wait for the process to actually exit.\n"
+        f"Expected exit codes on the previous background task:\n"
+        f"  143 (SIGTERM) — process was killed by pkill during restart, it is gone\n"
+        f"  144 (SIGURG)  — task manager timed out, NiceTransfer keeps running (Python ignores SIGURG)\n\n"
         f"### If the AI received a URL from a human\n\n"
         f"Fetch the URL. The HTML <head> contains:\n\n"
         f"  <meta name=\"mcp-server\" content=\"http://...:{PORT}/mcp?token=<token>\">\n\n"
@@ -1232,6 +1241,7 @@ _banner_lines = [
     f"local   : http://127.0.0.1:{PORT}",
     f"network : {ACCESS_URL}",
     f"mcp     : {_MCP_URL}",
+    f"llms    : http://127.0.0.1:{PORT}/llms.txt?token={TOKEN}",
     *([f"timeout : {TIMEOUT_MIN} min"] if TIMEOUT_MIN > 0 else []),
     None,
     "Scan QR code in browser · Ctrl+C to quit",

@@ -156,6 +156,16 @@ body, .q-body, .nicegui-content {
   background: rgba(255, 109, 0, 0.06);
 }
 
+/* ── Markdown: constrain flex-item width, scroll code/tables ── */
+.nicegui-markdown { overflow-wrap: break-word; word-break: break-word; min-width: 0; width: 100%; }
+.nicegui-markdown .codehilite pre { overflow-x: scroll; word-break: normal; }
+.nicegui-markdown .codehilite pre::-webkit-scrollbar { height: 8px; }
+.nicegui-markdown .codehilite pre::-webkit-scrollbar-track { background: rgba(0,0,0,0.15); border-radius: 4px; }
+.nicegui-markdown .codehilite pre::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.45); border-radius: 4px; }
+.body--dark .nicegui-markdown .codehilite pre::-webkit-scrollbar-track { background: rgba(255,255,255,0.15); }
+.body--dark .nicegui-markdown .codehilite pre::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.4); }
+.nicegui-markdown table { display: block; overflow-x: auto; max-width: 100%; }
+
 /* ── Upload widget: full width, no extra space ── */
 .nt-uploader { width: 100% !important; max-width: 100% !important; }
 .nt-uploader .q-uploader {
