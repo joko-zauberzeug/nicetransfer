@@ -1,5 +1,13 @@
 # Changelog
 
+## Session timeout control, countdown display — 28. April 2026
+
+- **Countdown in header** — when a timeout is active, a monospace `⏱ MM:SS` counter appears directly under the logo; stable width (no jitter), visible on all pages
+- **Timeout control in Control panel** — number input + **Set** button to start or restart the countdown at runtime; set to 0 to disable; "Client permissions" and "Session timeout" subheadings now in orange for visual consistency
+- **PID file cleanup on SIGTERM** — timeout-triggered shutdown and external `pkill` both now reliably delete `.nicetransfer.pid`; previously atexit was not called by uvicorn's shutdown path
+
+→ [7d5b0a4](https://github.com/joko-zauberzeug/nicetransfer/commit/7d5b0a4)
+
 ## Double-start prevention, llms-local.txt — 28. April 2026
 
 - **PID file (`.nicetransfer.pid`)** — written on startup, deleted on exit; contains `pid` and `port`; NiceTransfer refuses to start from the same directory if a live process is already running, with a clear error message and ready-to-run restart command; stale PID files (crash) are silently cleaned up

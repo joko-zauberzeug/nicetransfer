@@ -722,10 +722,23 @@ def build_header(is_dark, section_links=None, current="", is_local=False):
     logo_href = f"/?token={TOKEN}"
 
     with ui.header().classes("items-center q-px-md q-py-sm nt-header"):
-        ui.html(f'<a href="{logo_href}" class="nt-logo">'
-                f'<span style="font-weight:700">Nice</span>'
-                f'<span style="font-weight:400">Transfer</span>'
-                f'</a>')
+        with ui.column().classes("gap-0 items-start"):
+            ui.html(f'<a href="{logo_href}" class="nt-logo">'
+                    f'<span style="font-weight:700">Nice</span>'
+                    f'<span style="font-weight:400">Transfer</span>'
+                    f'</a>')
+            countdown = ui.label().classes("text-grey-5 text-caption").style(
+                "font-family: monospace; line-height: 1; margin-left: 2px"
+            ).tooltip("Session timeout")
+            def _update_countdown(lbl=countdown):
+                if _timeout_active <= 0:
+                    lbl.set_text("")
+                    return
+                remaining = max(0, _timeout_active * 60 - (_time.time() - _start_time))
+                m, s = divmod(int(remaining), 60)
+                lbl.set_text(f"⏱ {m}:{s:02d}")
+            _update_countdown()
+            ui.timer(1, _update_countdown)
 
         tab_refs  = {}
         menu_refs = {}
@@ -886,7 +899,7 @@ async def index(request: Request):
                                     .style("word-break:break-all; margin-top:-4px")
                             ui.separator().props("spaced=false")
 
-                        ui.label("Client permissions").classes("text-overline text-grey q-mt-sm")
+                        ui.label("Client permissions").classes("text-overline q-mt-sm").style("color: var(--nt-orange)")
                         ui.separator()
                         _restore_ref = {}
                         for label, key in [
@@ -919,6 +932,21 @@ async def index(request: Request):
                                     ui.switch(value=getattr(state, _key),
                                         on_change=lambda e, k=_key: setattr(state, k, e.value))
                             ui.separator().props("spaced=false")
+
+                        ui.label("Session timeout").classes("text-overline q-mt-sm").style("color: var(--nt-orange)")
+                        ui.separator()
+                        with ui.row().classes("items-center justify-between w-full q-py-xs"):
+                            ui.label("Timeout (minutes, 0 = off)")
+                            with ui.row().classes("items-center").style("gap: 8px"):
+                                timeout_input = ui.number(value=_timeout_active, min=0, step=1, precision=0) \
+                                    .props("dense outlined").style("width: 80px")
+                                def apply_timeout():
+                                    global _start_time, _timeout_active
+                                    _timeout_active = max(0, int(timeout_input.value or 0))
+                                    _start_time = _time.time()
+                                    _start_shutdown_timer()
+                                ui.button("Set", on_click=apply_timeout).props("flat dense color=orange")
+                        ui.separator().props("spaced=false")
 
             local_panel()
 
@@ -1306,14 +1334,40 @@ if NO_NETWORK:
     print(hotspot_hint_text())
     print()
 
-if TIMEOUT_MIN > 0:
-    def _timeout_shutdown():
-        print(f"\n⏱  Timeout reached ({TIMEOUT_MIN} min) — shutting down.")
-        os.kill(os.getpid(), signal.SIGTERM)
-    _shutdown_timer = threading.Timer(TIMEOUT_MIN * 60, _timeout_shutdown)
-    _shutdown_timer.daemon = True
-    _shutdown_timer.start()
+_start_time     = _time.time()
+_timeout_active = TIMEOUT_MIN   # mutable; 0 = no timeout
+_shutdown_timer = None
 
+def _timeout_shutdown():
+    PID_FILE.unlink(missing_ok=True)
+    print(f"\n⏱  Timeout reached ({_timeout_active} min) — shutting down.")
+    os.kill(os.getpid(), signal.SIGTERM)
+
+def _start_shutdown_timer():
+    global _shutdown_timer
+    if _shutdown_timer is not None:
+        _shutdown_timer.cancel()
+    if _timeout_active > 0:
+        _shutdown_timer = threading.Timer(_timeout_active * 60, _timeout_shutdown)
+        _shutdown_timer.daemon = True
+        _shutdown_timer.start()
+    else:
+        _shutdown_timer = None
+
+if TIMEOUT_MIN > 0:
+    _start_shutdown_timer()
+
+def _setup_sigterm_cleanup():
+    prev = signal.getsignal(signal.SIGTERM)
+    def _handler(sig, frame):
+        PID_FILE.unlink(missing_ok=True)
+        if callable(prev):
+            prev(sig, frame)
+        else:
+            raise SystemExit(0)
+    signal.signal(signal.SIGTERM, _handler)
+
+app.on_startup(_setup_sigterm_cleanup)
 app.on_startup(lambda: threading.Timer(
     1.5, lambda: webbrowser.open(f"http://localhost:{PORT}/?token={TOKEN}")).start())
 

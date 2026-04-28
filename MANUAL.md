@@ -62,7 +62,7 @@ share    = "/path/to/share-folder"
 [server]
 port    = 7777
 token   = ""   # empty = randomly generated on each start
-timeout = 0    # minutes until auto-shutdown; 0 = run indefinitely
+timeout = 60   # minutes until auto-shutdown; 0 = run indefinitely
 
 [ui]
 theme    = "auto"   # auto (follows OS), light, dark
@@ -110,6 +110,7 @@ Open `http://localhost:7777` on the server device. The page opens with a full-sc
 
 - **Section toggles** — enable/disable Upload, Download, Share at runtime
 - **Client permissions** — grant clients the ability to delete files per section, see Trash, or restore from Trash
+- **Session timeout** — set a timeout in minutes and click **Set** to start or restart the countdown; set to 0 to disable; a countdown appears under the logo in the header when a timeout is active
 - **Sortable file list** — click column headers to sort
 - **Multi-file selection** — checkboxes in the file list; top checkbox selects all
 - **ZIP download** — select files and click the download icon in the table header

@@ -74,7 +74,7 @@ port    = 7777
 # token: leave empty = randomly generated on each start; set own value = fixed
 token   = ""
 # timeout in minutes; 0 = run indefinitely
-timeout = 0
+timeout = 60
 
 [ui]
 # theme: auto (follows OS setting), light, dark
