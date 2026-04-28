@@ -4,7 +4,7 @@ nicetransfer v1.0 — local file transfer via browser
 NiceGUI 3.x
 """
 
-import sys, subprocess, importlib, socket, secrets, argparse, webbrowser, threading, base64, zipfile, json as _json, asyncio, os, signal
+import sys, subprocess, importlib, socket, secrets, argparse, webbrowser, threading, base64, zipfile, json as _json, asyncio, os, signal, atexit
 from pathlib import Path
 from datetime import datetime
 import time as _time
@@ -74,6 +74,7 @@ except ImportError:
 
 SCRIPT_DIR  = Path(__file__).parent.resolve()
 CONFIG_FILE = SCRIPT_DIR / "config.toml"
+PID_FILE    = SCRIPT_DIR / ".nicetransfer.pid"
 app.add_static_files("/nt-static", str(SCRIPT_DIR))
 
 
@@ -126,6 +127,21 @@ TIMEOUT_MIN = cfg_int("server", "timeout", 0)   # 0 = no timeout
 
 for d in [UPLOAD_DIR, DOWNLOAD_DIR, SHARE_DIR, TRASH_DIR]:
     d.mkdir(parents=True, exist_ok=True)
+
+if PID_FILE.exists():
+    try:
+        _pid_data = dict(line.split("=", 1) for line in PID_FILE.read_text().strip().splitlines())
+        _pid  = int(_pid_data["pid"])
+        _port = int(_pid_data["port"])
+        os.kill(_pid, 0)
+        print(f"✗  NiceTransfer is already running from this directory (PID {_pid}, port {_port}).")
+        print(f"   Stop it first:  pkill -f nicetransfer.py")
+        print(f"   Or restart it:  pkill -f nicetransfer.py && while pgrep -f nicetransfer.py > /dev/null 2>&1; do sleep 0.1; done && bash {SCRIPT_DIR}/run.sh")
+        sys.exit(1)
+    except (ProcessLookupError, PermissionError):
+        PID_FILE.unlink(missing_ok=True)
+    except (KeyError, ValueError):
+        PID_FILE.unlink(missing_ok=True)
 
 
 # ── 6. State ──────────────────────────────────────────────────────────────────
@@ -1059,35 +1075,20 @@ async def mcp_server_card():
         },
     })
 
-@app.get("/llms.txt")
-async def llms_txt():
+def _llms_body():
     sections = [s for s, on in [("upload",   state.upload_enabled),
                                  ("download", state.download_enabled),
                                  ("share",    state.share_enabled)] if on]
     mcp_url  = f"http://{LOCAL_IP}:{PORT}/mcp?token={TOKEN}"
     llms_url = f"http://{LOCAL_IP}:{PORT}/llms.txt?token={TOKEN}"
-    return PlainTextResponse(
+    return (
         f"# NiceTransfer\n\n"
         f"Local file transfer hub. Transfer files between devices on the same Wi-Fi network via browser.\n"
         f"This file is intended for AI assistants. It describes how to interact with NiceTransfer programmatically.\n\n"
 
-        f"## How an AI should use NiceTransfer\n\n"
+        f"## Connecting\n\n"
         f"NiceTransfer exposes an MCP (Model Context Protocol) endpoint over Streamable HTTP.\n"
         f"No browser, no manual steps — the AI can transfer files directly via tool calls.\n\n"
-        f"### If the AI started the NiceTransfer process\n\n"
-        f"The startup banner printed to stdout contains a line:\n\n"
-        f"  mcp     : http://127.0.0.1:{PORT}/mcp?token=<token>\n\n"
-        f"Extract that URL. It is valid for the lifetime of this process.\n"
-        f"Use it directly for MCP calls — no registration or configuration needed.\n\n"
-        f"### Restarting NiceTransfer\n\n"
-        f"To restart reliably, wait until the old process is gone before starting a new one:\n\n"
-        f"  pkill -f nicetransfer.py 2>/dev/null\n"
-        f"  while pgrep -f nicetransfer.py > /dev/null 2>&1; do sleep 0.1; done\n"
-        f"  bash {SCRIPT_DIR}/run.sh\n\n"
-        f"Do not use a fixed sleep — wait for the process to actually exit.\n"
-        f"Expected exit codes on the previous background task:\n"
-        f"  143 (SIGTERM) — process was killed by pkill during restart, it is gone\n"
-        f"  144 (SIGURG)  — task manager timed out, NiceTransfer keeps running (Python ignores SIGURG)\n\n"
         f"### If the AI received a URL from a human\n\n"
         f"Fetch the URL. The HTML <head> contains:\n\n"
         f"  <meta name=\"mcp-server\" content=\"http://...:{PORT}/mcp?token=<token>\">\n\n"
@@ -1120,6 +1121,47 @@ async def llms_txt():
         f"- Files in 'upload' are meant to be sent to the server; 'download' to be fetched from it.\n"
         f"- 'share' is bidirectional.\n"
     )
+
+@app.get("/llms.txt")
+async def llms_txt():
+    return PlainTextResponse(_llms_body())
+
+@app.get("/llms-local.txt")
+async def llms_local_txt(request: Request):
+    if not is_local(request):
+        return PlainTextResponse("Not available for external clients.\n", status_code=403)
+    llms_local_url = f"http://127.0.0.1:{PORT}/llms-local.txt?token={TOKEN}"
+    local_section = (
+        f"## If the AI started NiceTransfer\n\n"
+        f"The startup banner printed to stdout contains:\n\n"
+        f"  mcp     : http://127.0.0.1:{PORT}/mcp?token=<token>\n"
+        f"  llms    : http://127.0.0.1:{PORT}/llms.txt?token=<token>\n"
+        f"  llms+   : {llms_local_url}\n\n"
+        f"Extract the token from any of these URLs.\n"
+        f"Fetch llms-local.txt immediately after start to get full operating instructions.\n"
+        f"Keep the token for the entire session — do not re-extract it on every step.\n"
+        f"Never redirect startup output to /tmp or other world-readable files — the banner contains the token.\n\n"
+        f"## Checking if NiceTransfer is already running\n\n"
+        f"NiceTransfer writes a PID file on startup and deletes it on exit:\n\n"
+        f"  {SCRIPT_DIR}/.nicetransfer.pid\n\n"
+        f"Contents: `pid=<PID>\\nport=<PORT>`. If the file exists and the process is alive,\n"
+        f"NiceTransfer refuses to start from this directory. Multiple instances from different\n"
+        f"directories are allowed.\n\n"
+        f"Before starting, check:\n\n"
+        f"  cat {SCRIPT_DIR}/.nicetransfer.pid 2>/dev/null\n\n"
+        f"If the file exists, NiceTransfer is already running on that port — use it.\n"
+        f"If the file does not exist (or the PID is dead), start normally.\n\n"
+        f"## Restarting NiceTransfer\n\n"
+        f"Wait until the old process is gone before starting a new one:\n\n"
+        f"  pkill -f nicetransfer.py 2>/dev/null\n"
+        f"  while pgrep -f nicetransfer.py > /dev/null 2>&1; do sleep 0.1; done\n"
+        f"  bash {SCRIPT_DIR}/run.sh\n\n"
+        f"Do not use a fixed sleep — wait for the process to actually exit.\n"
+        f"Expected exit codes on the previous background task:\n"
+        f"  143 (SIGTERM) — process was killed by pkill during restart, it is gone\n"
+        f"  144 (SIGURG)  — task manager timed out, NiceTransfer keeps running (Python ignores SIGURG)\n\n"
+    )
+    return PlainTextResponse(local_section + _llms_body())
 
 
 # ── 16. MCP server ───────────────────────────────────────────────────────────
@@ -1242,6 +1284,7 @@ _banner_lines = [
     f"network : {ACCESS_URL}",
     f"mcp     : {_MCP_URL}",
     f"llms    : http://127.0.0.1:{PORT}/llms.txt?token={TOKEN}",
+    f"llms+   : http://127.0.0.1:{PORT}/llms-local.txt?token={TOKEN}",
     *([f"timeout : {TIMEOUT_MIN} min"] if TIMEOUT_MIN > 0 else []),
     None,
     "Scan QR code in browser · Ctrl+C to quit",
@@ -1273,6 +1316,9 @@ if TIMEOUT_MIN > 0:
 
 app.on_startup(lambda: threading.Timer(
     1.5, lambda: webbrowser.open(f"http://localhost:{PORT}/?token={TOKEN}")).start())
+
+PID_FILE.write_text(f"pid={os.getpid()}\nport={PORT}\n")
+atexit.register(lambda: PID_FILE.unlink(missing_ok=True))
 
 ui.run(host="0.0.0.0", port=PORT, title="NiceTransfer",
        favicon="📁", dark=True, reload=False, show=False)

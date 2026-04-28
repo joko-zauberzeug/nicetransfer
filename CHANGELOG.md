@@ -1,5 +1,14 @@
 # Changelog
 
+## Double-start prevention, llms-local.txt — 28. April 2026
+
+- **PID file (`.nicetransfer.pid`)** — written on startup, deleted on exit; contains `pid` and `port`; NiceTransfer refuses to start from the same directory if a live process is already running, with a clear error message and ready-to-run restart command; stale PID files (crash) are silently cleaned up
+- **`/llms-local.txt`** — localhost-only endpoint (403 for external clients); contains token session guidance, PID file check instructions, restart procedure with pgrep wait loop, exit codes 143/144, and security note (never redirect banner output to /tmp)
+- **`llms+` line in startup banner** — points to `llms-local.txt` with token; AI assistants fetch it immediately after start
+- **`/llms.txt` refactored** — generic content only (no local paths or restart instructions); shared via `_llms_body()` helper used by both endpoints
+
+→ [6896711](https://github.com/joko-zauberzeug/nicetransfer/commit/6896711)
+
 ## v1.0 — MCP server, AI operating guide — 28. April 2026
 
 - **MCP server (`/mcp`)** — Streamable HTTP endpoint fully working; `FastMCP` mounted into NiceGUI's FastAPI app with `streamable_http_path="/"` (fixes path-stripping by Starlette's `Mount`) and `host="0.0.0.0"` (disables auto DNS-rebinding protection that would block LAN clients); session manager lifespan wired via `app.on_startup` / `app.on_shutdown` (Starlette `Mount` does not propagate lifespan events)
