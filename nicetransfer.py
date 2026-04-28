@@ -853,6 +853,7 @@ async def index(request: Request):
                             ).classes("text-h3 text-weight-bold")
                             with ui.element("div").classes("nt-qr-hero"):
                                 ui.html(qr)
+                            ui.label("Scan QR code to connect").classes("text-h5")
                             with ui.row().classes("items-center justify-center").style("gap:0.25rem"):
                                 ui.label(url).classes("nt-url")
 
@@ -876,7 +877,6 @@ async def index(request: Request):
                                     "document.querySelectorAll('.nt-share-wrap')"
                                     ".forEach(e => { if (!navigator.share) e.style.display='none' })"
                                 )
-                            ui.label("Scan QR code to connect").classes("text-h5")
                     ui.icon("keyboard_arrow_down").props("size=2rem color=grey-5") \
                         .classes("nt-scroll-hint")
 
@@ -945,7 +945,7 @@ async def index(request: Request):
                                     _timeout_active = max(0, int(timeout_input.value or 0))
                                     _start_time = _time.time()
                                     _start_shutdown_timer()
-                                ui.button("Set", on_click=apply_timeout).props("flat dense color=orange")
+                                ui.button("Set", on_click=apply_timeout).props("flat dense color=primary")
                         ui.separator().props("spaced=false")
 
             local_panel()

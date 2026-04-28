@@ -111,6 +111,7 @@ body, .q-body, .nicegui-content {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding-bottom: 4rem;
 }
 .nt-hero-content {
   display: flex;
@@ -118,7 +119,7 @@ body, .q-body, .nicegui-content {
   align-items: center;
   gap: 1.25rem;
   text-align: center;
-  padding: 2rem 1rem;
+  padding: 0.5rem 1rem 2rem;
 }
 .nt-qr-hero { display: flex; justify-content: center; }
 .nt-qr-hero svg {

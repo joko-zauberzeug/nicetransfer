@@ -4,7 +4,7 @@ Nice and simple local file transfer via browser.
 
 NiceTransfer turns any computer into a local file transfer hub. Start it on one device, scan the QR code on any other device on the same Wi-Fi — the browser opens and files can be transferred immediately. Nothing to install on the client side.
 
-NiceTransfer is built on [NiceGUI](https://nicegui.io) by Zauberzeug GmbH.
+NiceTransfer is built on [NiceGUI](https://nicegui.io), a Python UI framework by [Zauberzeug GmbH](https://zauberzeug.com).
 
 ## Features
 

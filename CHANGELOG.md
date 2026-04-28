@@ -1,5 +1,13 @@
 # Changelog
 
+## Hero layout, color consistency, Manual polish — 28. April 2026
+
+- **Connection hero** — "Scan QR code to connect" now appears directly under the QR code, URL with copy/share below; hero content shifted upward via `padding-bottom` on the hero container (avoids overflow issues with negative margins)
+- **Color consistency** — Set button changed from `color=orange` (Quasar built-in) to `color=primary`; all accent colors now flow through `--nt-orange` / `--q-primary` in `nicetransfer.css` — one edit changes the full color scheme
+- **Manual** — session timeout control documented; NiceGUI attribution rewritten ("built on NiceGUI, a Python UI framework by Zauberzeug GmbH" with links to nicegui.io and zauberzeug.com)
+
+→ [4cae0f4](https://github.com/joko-zauberzeug/nicetransfer/commit/4cae0f4)
+
 ## Session timeout control, countdown display — 28. April 2026
 
 - **Countdown in header** — when a timeout is active, a monospace `⏱ MM:SS` counter appears directly under the logo; stable width (no jitter), visible on all pages
