@@ -9,7 +9,7 @@
 - **Version 1.0** — feature set complete: file transfer, trash, undo, camera upload, token security, AI discovery layer, working MCP server
 - Changelog hashes corrected (`6bb3535` → `bd9a9b4`, `0a8ee3b` → `fbc11ec`, `6014249` → `cffdcf8`)
 
-→ [HASH](https://github.com/joko-zauberzeug/nicetransfer/commit/HASH)
+→ [f413094](https://github.com/joko-zauberzeug/nicetransfer/commit/f413094)
 
 ## AI discovery layer — 27. April 2026
 
