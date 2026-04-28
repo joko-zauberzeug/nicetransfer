@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-nicetransfer v0.5 — local file transfer via browser
+nicetransfer v1.0 — local file transfer via browser
 NiceGUI 3.x
 """
 
@@ -33,6 +33,7 @@ def check_deps():
     needed = []
     if not _pkg_installed("nicegui"): needed.append("nicegui")
     if not _pkg_installed("qrcode"):  needed.append("qrcode[svg]")
+    if not _pkg_installed("mcp"):     needed.append("mcp")
     if sys.version_info < (3,11) and not _pkg_installed("tomli"): needed.append("tomli")
     if needed:
         print("nicetransfer: installing missing dependencies:")
@@ -61,6 +62,12 @@ try:
     HAS_QR = True
 except ImportError:
     HAS_QR = False
+
+try:
+    from mcp.server.fastmcp import FastMCP
+    HAS_MCP = True
+except ImportError:
+    HAS_MCP = False
 
 
 # ── 3. Paths & Static ─────────────────────────────────────────────────────────
@@ -237,6 +244,21 @@ async def save_upload(e: events.UploadEventArguments, directory: Path):
         dest = directory / f"{dest.stem}_{ts}{dest.suffix}"
     await e.file.save(dest)
     return dest
+
+def safe_filename(name: str, directory: Path) -> Path | None:
+    """Sanitize a filename and verify it stays within directory.
+    Strips all directory components (prevents path traversal).
+    Returns the destination Path or None if the name is invalid."""
+    clean = Path(name).name          # keep only the final component
+    if not clean or clean in (".", ".."):
+        return None
+    dest = directory / clean
+    try:
+        dest.resolve().relative_to(directory.resolve())
+        return dest
+    except ValueError:
+        return None
+
 
 def move_to_trash(file_path: Path, source_dir_name: str) -> Path:
     """Move file to trash with a timestamp prefix to avoid name conflicts."""
@@ -1042,27 +1064,166 @@ async def llms_txt():
     sections = [s for s, on in [("upload",   state.upload_enabled),
                                  ("download", state.download_enabled),
                                  ("share",    state.share_enabled)] if on]
+    mcp_url  = f"http://{LOCAL_IP}:{PORT}/mcp?token={TOKEN}"
+    llms_url = f"http://{LOCAL_IP}:{PORT}/llms.txt?token={TOKEN}"
     return PlainTextResponse(
         f"# NiceTransfer\n\n"
-        f"Local file transfer hub. Transfer files between devices on the same Wi-Fi network via browser.\n\n"
-        f"## MCP Integration\n\n"
-        f"MCP endpoint : http://{LOCAL_IP}:{PORT}/mcp\n"
-        f"Transport    : Streamable HTTP (MCP spec 2025-03-26)\n"
-        f"Auth         : query parameter ?token=<token>  (token shown in QR code URL and server banner)\n\n"
+        f"Local file transfer hub. Transfer files between devices on the same Wi-Fi network via browser.\n"
+        f"This file is intended for AI assistants. It describes how to interact with NiceTransfer programmatically.\n\n"
+
+        f"## How an AI should use NiceTransfer\n\n"
+        f"NiceTransfer exposes an MCP (Model Context Protocol) endpoint over Streamable HTTP.\n"
+        f"No browser, no manual steps — the AI can transfer files directly via tool calls.\n\n"
+        f"### If the AI started the NiceTransfer process\n\n"
+        f"The startup banner printed to stdout contains a line:\n\n"
+        f"  mcp     : http://127.0.0.1:{PORT}/mcp?token=<token>\n\n"
+        f"Extract that URL. It is valid for the lifetime of this process.\n"
+        f"Use it directly for MCP calls — no registration or configuration needed.\n\n"
+        f"### If the AI received a URL from a human\n\n"
+        f"Fetch the URL. The HTML <head> contains:\n\n"
+        f"  <meta name=\"mcp-server\" content=\"http://...:{PORT}/mcp?token=<token>\">\n\n"
+        f"Use that content value as the MCP endpoint.\n\n"
+        f"### MCP endpoint (this server)\n\n"
+        f"  {mcp_url}\n\n"
+        f"Transport : Streamable HTTP (MCP spec 2025-03-26)\n"
+        f"Auth      : token is already embedded in the URL above as ?token=...\n\n"
+
         f"## Active sections\n\n"
-        f"{', '.join(sections) if sections else 'none'}\n\n"
+        f"{', '.join(sections) if sections else 'none (all sections currently disabled)'}\n\n"
+
         f"## Tools\n\n"
-        f"get_status()                              — server URL, active sections\n"
-        f"list_files(section)                       — list files in a section\n"
-        f"upload_file(section, filename, content)   — upload a file (base64 content)\n"
-        f"download_file(section, filename)          — download a file (returns base64)\n"
+        f"get_status()\n"
+        f"  Returns: server URL, active sections\n\n"
+        f"list_files(section)\n"
+        f"  section: 'upload' | 'download' | 'share'\n"
+        f"  Returns: list of {{name, size, modified}}\n\n"
+        f"upload_file(section, filename, content_base64)\n"
+        f"  section: 'upload' | 'download' | 'share'\n"
+        f"  content_base64: base64-encoded file content\n"
+        f"  Returns: {{saved_as, bytes}}\n\n"
+        f"download_file(section, filename)\n"
+        f"  section: 'upload' | 'download' | 'share'\n"
+        f"  Returns: {{filename, content_base64, bytes}}\n\n"
+
+        f"## Notes\n\n"
+        f"- The token regenerates on each server start unless a fixed token is set in config.toml.\n"
+        f"- Always fetch this file fresh ({llms_url}) to get the current MCP URL.\n"
+        f"- Files in 'upload' are meant to be sent to the server; 'download' to be fetched from it.\n"
+        f"- 'share' is bidirectional.\n"
     )
 
 
-# ── 16. Banner & Start ────────────────────────────────────────────────────────
+# ── 16. MCP server ───────────────────────────────────────────────────────────
+
+if HAS_MCP:
+    # streamable_http_path="/" puts the MCP route at / inside the sub-app.
+    # When mounted at /mcp, Starlette strips the /mcp prefix so the sub-app
+    # sees / — which matches the route.  Default "/mcp" would see / and 404.
+    #
+    # host="0.0.0.0" disables FastMCP's auto DNS-rebinding protection that
+    # only allows localhost — our token_guard middleware handles auth instead.
+    _mcp = FastMCP(
+        "NiceTransfer",
+        streamable_http_path="/",
+        host="0.0.0.0",
+        instructions=(
+            "NiceTransfer is a local file transfer hub. "
+            "Use list_files to see what's available, upload_file to send files, "
+            "download_file to retrieve them. "
+            "Valid sections: 'upload', 'download', 'share'."
+        ),
+    )
+
+    _SECTION_MAP = lambda: {
+        "upload":   UPLOAD_DIR,
+        "download": DOWNLOAD_DIR,
+        "share":    SHARE_DIR,
+    }
+
+    @_mcp.tool()
+    def get_status() -> dict:
+        """Return server status: network URL and which sections are active."""
+        return {
+            "url": ACCESS_URL,
+            "sections": {
+                "upload":   state.upload_enabled,
+                "download": state.download_enabled,
+                "share":    state.share_enabled,
+            },
+        }
+
+    @_mcp.tool()
+    def list_files(section: str) -> list[dict]:
+        """List files in a section ('upload', 'download', or 'share')."""
+        directory = _SECTION_MAP().get(section)
+        if not directory:
+            raise ValueError(f"Unknown section '{section}'. Use upload, download, or share.")
+        return [{"name": e["name"], "size": e["size"], "modified": e["time"]}
+                for e in file_entries(directory)]
+
+    @_mcp.tool()
+    def upload_file(section: str, filename: str, content_base64: str) -> dict:
+        """Upload a file to a section. content_base64 must be base64-encoded file content."""
+        directory = _SECTION_MAP().get(section)
+        if not directory:
+            raise ValueError(f"Unknown section '{section}'. Use upload, download, or share.")
+        dest = safe_filename(filename, directory)
+        if dest is None:
+            raise ValueError(f"Invalid filename: {filename!r}")
+        if dest.exists():
+            ts   = datetime.now().strftime("%H%M%S")
+            stem = dest.stem
+            suf  = dest.suffix
+            dest = directory / f"{stem}_{ts}{suf}"
+        dest.write_bytes(base64.b64decode(content_base64))
+        return {"saved_as": dest.name, "bytes": dest.stat().st_size}
+
+    @_mcp.tool()
+    def download_file(section: str, filename: str) -> dict:
+        """Download a file from a section. Returns base64-encoded content."""
+        _, file_path = _resolve_file(section, filename)
+        if not file_path:
+            raise ValueError(f"File not found: {filename!r} in section '{section}'.")
+        data = file_path.read_bytes()
+        return {
+            "filename":       filename,
+            "content_base64": base64.b64encode(data).decode(),
+            "bytes":          len(data),
+        }
+
+    # Build the Starlette sub-app (this also initialises _mcp._session_manager).
+    _mcp_sub = _mcp.streamable_http_app()
+    app.mount("/mcp", _mcp_sub)
+
+    # Starlette's Mount does not propagate lifespan events to the sub-app, so
+    # the session manager's task group (required for every request) would never
+    # start.  We enter the run() context in on_startup and exit in on_shutdown.
+    _mcp_ctx = None
+
+    async def _mcp_startup():
+        global _mcp_ctx
+        _mcp_ctx = _mcp.session_manager.run()
+        await _mcp_ctx.__aenter__()
+
+    async def _mcp_shutdown():
+        global _mcp_ctx
+        if _mcp_ctx is not None:
+            try:
+                await _mcp_ctx.__aexit__(None, None, None)
+            except Exception:
+                pass
+            _mcp_ctx = None
+
+    app.on_startup(_mcp_startup)
+    app.on_shutdown(_mcp_shutdown)
+
+
+# ── 17. Banner & Start ────────────────────────────────────────────────────────
+
+_MCP_URL = f"http://127.0.0.1:{PORT}/mcp?token={TOKEN}"
 
 _banner_lines = [
-    "NiceTransfer v0.5",
+    "NiceTransfer v1.0",
     None,
     f"upload  : {UPLOAD_DIR}",
     f"download: {DOWNLOAD_DIR}",
@@ -1070,6 +1231,7 @@ _banner_lines = [
     None,
     f"local   : http://127.0.0.1:{PORT}",
     f"network : {ACCESS_URL}",
+    f"mcp     : {_MCP_URL}",
     *([f"timeout : {TIMEOUT_MIN} min"] if TIMEOUT_MIN > 0 else []),
     None,
     "Scan QR code in browser · Ctrl+C to quit",

@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0 — MCP server, AI operating guide — 28. April 2026
+
+- **MCP server (`/mcp`)** — Streamable HTTP endpoint fully working; `FastMCP` mounted into NiceGUI's FastAPI app with `streamable_http_path="/"` (fixes path-stripping by Starlette's `Mount`) and `host="0.0.0.0"` (disables auto DNS-rebinding protection that would block LAN clients); session manager lifespan wired via `app.on_startup` / `app.on_shutdown` (Starlette `Mount` does not propagate lifespan events)
+- Four MCP tools: `get_status`, `list_files`, `upload_file`, `download_file`; path traversal prevented via `safe_filename()`
+- **`mcp` line in startup banner** — `mcp     : http://127.0.0.1:PORT/mcp?token=TOKEN`; any AI that starts NiceTransfer reads the endpoint directly from stdout
+- **`/llms.txt` as AI operating guide** — documents two discovery workflows: AI started the server (extract token from banner `mcp` line), AI received a URL from a human (read `<meta name="mcp-server">` from the HTML); current MCP URL with live token embedded; tool signatures and section semantics explained
+- **Version 1.0** — feature set complete: file transfer, trash, undo, camera upload, token security, AI discovery layer, working MCP server
+- Changelog hashes corrected (`6bb3535` → `bd9a9b4`, `0a8ee3b` → `fbc11ec`, `6014249` → `cffdcf8`)
+
+→ [HASH](https://github.com/joko-zauberzeug/nicetransfer/commit/HASH)
+
 ## AI discovery layer — 27. April 2026
 
 - **Meta tags in `<head>`** — every page includes `mcp-server`, `mcp-server-card`, and `llms-txt` meta tags with full token-bearing URLs; an AI app that scans the QR code and fetches the page immediately knows how to connect
@@ -9,7 +20,7 @@
 - MCP endpoint (`/mcp`) not yet implemented — discovery layer is in place for when it is
 - Manual: new AI integration section
 
-→ [bd9a9b4](https://github.com/joko-zauberzeug/nicetransfer/commit/bd9a9b4)
+→ [19c0ab9](https://github.com/joko-zauberzeug/nicetransfer/commit/19c0ab9)
 
 ## Token everywhere, auto-shutdown timeout — 27. April 2026
 
@@ -20,14 +31,14 @@
 - **Auto-shutdown timeout** — `[server] timeout = 0` in `config.toml`; set to N minutes for automatic shutdown after that duration; `0` = run indefinitely; shown in startup banner when active
 - Manual updated: Security section revised, timeout added to config example
 
-→ [6bb3535](https://github.com/joko-zauberzeug/nicetransfer/commit/6bb3535)
+→ [bd9a9b4](https://github.com/joko-zauberzeug/nicetransfer/commit/bd9a9b4)
 
 ## Cleanup: install.sh template, dead CSS — 27. April 2026
 
 - `install.sh` now generates a complete `config.toml` including `[ui]` and `[permissions]` sections — fresh installs get correct defaults out of the box
 - Removed unused `.nt-qr` CSS rule (small 220 px QR, superseded by `.nt-qr-hero`)
 
-→ [0a8ee3b](https://github.com/joko-zauberzeug/nicetransfer/commit/0a8ee3b)
+→ [fbc11ec](https://github.com/joko-zauberzeug/nicetransfer/commit/fbc11ec)
 
 ## Undo delete, camera upload, default client permissions — 27. April 2026
 
@@ -37,7 +48,7 @@
 - **Default client permissions** — `client_delete_upload` and `client_delete_share` now default to `true`; clients can delete in Upload and Share by default; Download deletion and Trash access remain off
 - Manual updated: undo, camera, updated permissions defaults and description
 
-→ [6014249](https://github.com/joko-zauberzeug/nicetransfer/commit/6014249)
+→ [cffdcf8](https://github.com/joko-zauberzeug/nicetransfer/commit/cffdcf8)
 
 ## Trash, hero landing page, navigation overhaul and typography — 27. April 2026, 13:57
 
