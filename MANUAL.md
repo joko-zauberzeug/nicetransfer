@@ -8,7 +8,7 @@ NiceTransfer is built on [NiceGUI](https://nicegui.io), a Python UI framework by
 
 ## Features
 
-- Three file sections: **Upload only**, **Download only**, **Share** (bidirectional)
+- Three file sections: **Share** (bidirectional), **Upload only**, **Download only**
 - **Trash** section — deleted files are moved to trash, not permanently removed; restore or delete forever per selection
 - Toggle sections on and off at runtime without restarting
 - Select multiple files and download them as a ZIP archive
@@ -147,9 +147,9 @@ Each section controls which operations are available.
 
 | Section | Upload | Download | Delete |
 |---------|--------|----------|--------|
+| **Share** | ✓ | ✓ | server always; clients if permitted |
 | **Upload only** | ✓ | — | server always; clients if permitted |
 | **Download only** | — | ✓ | server always; clients if permitted |
-| **Share** | ✓ | ✓ | server always; clients if permitted |
 | **Trash** | — | — | restore or delete forever |
 
 Sections can be enabled or disabled at runtime via the control panel without restarting the server. Deleted files are always moved to Trash first — nothing is removed immediately.

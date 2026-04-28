@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 Joko Keuschnig
 """
-nicetransfer v1.0 — local file transfer via browser
+nicetransfer v1.1 — local file transfer via browser
 NiceGUI 3.x
 """
 
-import sys, subprocess, importlib, socket, secrets, argparse, webbrowser, threading, base64, zipfile, json as _json, asyncio, os, signal, atexit
+import sys, subprocess, importlib, socket, secrets, argparse, webbrowser, threading, base64, zipfile, io, json as _json, asyncio, os, signal, atexit
 from pathlib import Path
 from datetime import datetime
 import time as _time
@@ -126,6 +126,7 @@ TRASH_DIR    = DATA / "trash"
 PORT        = ARGS.port or cfg_int("server", "port", 7777)
 TOKEN       = ARGS.token or cfg_str("server", "token", "") or secrets.token_urlsafe(12)
 TIMEOUT_MIN = cfg_int("server", "timeout", 0)   # 0 = no timeout
+VERSION     = "1.1"
 
 for d in [UPLOAD_DIR, DOWNLOAD_DIR, SHARE_DIR, TRASH_DIR]:
     d.mkdir(parents=True, exist_ok=True)
@@ -778,15 +779,16 @@ def build_header(is_dark, section_links=None, current="", is_local=False):
                     ui.separator()
                 ui.item("Manual",    on_click=lambda: ui.navigate.to(f"/manual?token={TOKEN}"))
                 ui.item("Changelog", on_click=lambda: ui.navigate.to(f"/changelog?token={TOKEN}"))
+                ui.item("Get",       on_click=lambda: ui.navigate.to(f"/get?token={TOKEN}"))
 
         if section_links:
             # None = always visible; str = state attribute to check
             anchor_to_key = {
                 "connection": None,
                 "control":    None,
+                "share":      "share_enabled",
                 "upload":     "upload_enabled",
                 "download":   "download_enabled",
-                "share":      "share_enabled",
                 "trash":      None if is_local else "client_trash_visible",
             }
 
@@ -819,9 +821,9 @@ async def index(request: Request):
     if local:
         _section_links += [("Connection", "connection"), ("Control", "control")]
     _section_links += [
+        ("Share",         "share"),
         ("Upload only",   "upload"),
         ("Download only", "download"),
-        ("Share",         "share"),
         ("Trash",         "trash"),
     ]
     build_header(is_dark, is_local=local, section_links=_section_links)
@@ -887,9 +889,9 @@ async def index(request: Request):
                         ui.label("Control").classes("nt-section-title text-h5")
                     with ui.column().classes("w-full q-pa-sm").style("gap:0"):
                         for label, key, path in [
+                            ("Share",         "share_enabled",    SHARE_DIR),
                             ("Upload only",   "upload_enabled",   UPLOAD_DIR),
                             ("Download only", "download_enabled", DOWNLOAD_DIR),
-                            ("Share",         "share_enabled",    SHARE_DIR),
                         ]:
                             with ui.column().classes("w-full q-py-xs").style("gap:0"):
                                 with ui.row().classes("items-center justify-between w-full"):
@@ -905,9 +907,9 @@ async def index(request: Request):
                         ui.separator()
                         _restore_ref = {}
                         for label, key in [
+                            ("Client can delete — Share",         "client_delete_share"),
                             ("Client can delete — Upload only",   "client_delete_upload"),
                             ("Client can delete — Download only", "client_delete_download"),
-                            ("Client can delete — Share",         "client_delete_share"),
                             ("Clients see Trash",                 "client_trash_visible"),
                             ("Clients can restore from Trash",    "client_trash_restore"),
                         ]:
@@ -985,11 +987,15 @@ async def index(request: Request):
             ui.timer(5.0, check_network)
 
         # ── File sections ─────────────────────────────────────────────────────
+        share_col    = ui.element("div").classes("w-full")
         upload_col   = ui.element("div").classes("w-full")
         download_col = ui.element("div").classes("w-full")
-        share_col    = ui.element("div").classes("w-full")
         trash_col    = ui.element("div").classes("w-full")
 
+        with share_col:
+            build_file_section("Share", SHARE_DIR, with_upload=True, with_download=True,
+                               anchor="share",
+                               with_delete=local or state.client_delete_share)
         with upload_col:
             build_file_section("Upload only", UPLOAD_DIR, with_upload=True, with_download=False,
                                anchor="upload",
@@ -998,10 +1004,6 @@ async def index(request: Request):
             build_file_section("Download only", DOWNLOAD_DIR, with_upload=False, with_download=True,
                                anchor="download",
                                with_delete=local or state.client_delete_download)
-        with share_col:
-            build_file_section("Share", SHARE_DIR, with_upload=True, with_download=True,
-                               anchor="share",
-                               with_delete=local or state.client_delete_share)
         with trash_col:
             build_trash_section(
                 can_restore=local or state.client_trash_restore,
@@ -1015,6 +1017,7 @@ async def index(request: Request):
             trash_col.set_visibility(local or state.client_trash_visible)
 
         ui.timer(1.0, apply_toggles)
+        build_footer()
 
 
 # ── 13. Manual & Changelog ────────────────────────────────────────────────────
@@ -1029,6 +1032,7 @@ async def manual_page(request: Request):
     with ui.column().classes("w-full q-pa-md").style("max-width: 860px; margin: 0 auto"):
         with ui.card().classes("w-full"):
             ui.markdown(content)
+    build_footer()
 
 @ui.page("/changelog")
 async def changelog_page(request: Request):
@@ -1048,9 +1052,105 @@ async def changelog_page(request: Request):
                     ui.markdown(entry)
         else:
             ui.markdown("_CHANGELOG.md not found._")
+    build_footer()
+
+
+def build_footer():
+    with ui.element("footer").classes("w-full q-px-md q-py-sm text-center text-caption text-grey-5") \
+            .style("border-top: 1px solid rgba(128,128,128,0.15); margin-top: 2rem"):
+        ui.html(
+            f'NiceTransfer v{VERSION} &nbsp;·&nbsp; '
+            f'© 2026 Joko Keuschnig &nbsp;·&nbsp; '
+            f'<a href="/get?token={TOKEN}" style="color:inherit">AGPL v3</a>'
+        )
+
+
+@ui.page("/get")
+async def get_page(request: Request):
+    ui.add_head_html(CSS)
+    is_dark = ui.dark_mode(value=cfg_theme())
+    build_header(is_dark, current="get")
+    with ui.column().classes("w-full q-pa-md").style("max-width: 860px; margin: 0 auto; gap: 1rem"):
+
+        with ui.card().classes("w-full q-pa-md"):
+            ui.label("Source package").classes("nt-section-title text-overline")
+            with ui.row().classes("items-center justify-between w-full q-mt-sm"):
+                with ui.column().style("gap: 0.25rem"):
+                    ui.label(f"NiceTransfer v{VERSION}").classes("text-h6")
+                    ui.label("Requires Python 3.9+ · run install.sh to set up") \
+                        .classes("text-caption text-grey")
+                ui.html(
+                    f'<a href="/download/source?token={TOKEN}" '
+                    f'style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;'
+                    f'border-radius:4px;background:var(--nt-orange);color:white;'
+                    f'text-decoration:none;font-weight:500;font-size:14px;">'
+                    f'<span class="material-icons" style="font-size:18px">download</span>'
+                    f'Download source</a>'
+                )
+            ui.separator().classes("q-my-sm")
+            ui.label(
+                "The source package contains all files needed to install and run NiceTransfer. "
+                "It works offline — no internet connection required. "
+                "Includes nicetransfer.py, install.sh, run.sh, the manual, changelog, and LICENSE."
+            ).classes("text-body2 text-grey")
+
+        with ui.card().classes("w-full q-pa-md"):
+            ui.label("Platforms").classes("nt-section-title text-overline")
+            for platform, icon in [
+                ("macOS (.app bundle)",  "laptop_mac"),
+                ("Linux (AppImage)",     "computer"),
+                ("Android (Termux)",     "phone_android"),
+            ]:
+                with ui.row().classes("items-center justify-between w-full q-py-xs"):
+                    with ui.row().classes("items-center").style("gap: 0.5rem"):
+                        ui.icon(icon).classes("text-grey-5")
+                        ui.label(platform)
+                    ui.label("Coming soon. Maybe.").classes("text-caption text-grey-5")
+                ui.separator().props("spaced=false")
+
+        with ui.card().classes("w-full q-pa-md"):
+            ui.label("Source code").classes("nt-section-title text-overline")
+            with ui.row().classes("items-center justify-between w-full q-py-xs"):
+                with ui.row().classes("items-center").style("gap: 0.5rem"):
+                    ui.icon("code").classes("text-grey-5")
+                    ui.label("GitHub repository")
+                ui.label("Coming soon").classes("text-caption text-grey-5")
+            ui.separator().props("spaced=false")
+            with ui.row().classes("items-center justify-between w-full q-py-xs"):
+                with ui.row().classes("items-center").style("gap: 0.5rem"):
+                    ui.icon("gavel").classes("text-grey-5")
+                    ui.label("License: GNU Affero General Public License v3.0")
+                ui.button("View in new tab", icon="open_in_new") \
+                    .props(f'href="/download/license?token={TOKEN}" target=_blank flat dense color=grey-7 no-caps')
+
+    build_footer()
 
 
 # ── 14. Download & Preview routes ─────────────────────────────────────────────
+
+_SOURCE_FILES = ["nicetransfer.py", "nicetransfer.css", "install.sh", "run.sh",
+                 "MANUAL.md", "CHANGELOG.md", "LICENSE", "README.md"]
+
+@app.get("/download/source")
+async def download_source():
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name in _SOURCE_FILES:
+            path = SCRIPT_DIR / name
+            if path.exists():
+                zf.write(path, f"nicetransfer/{name}")
+    buf.seek(0)
+    return Response(
+        content=buf.read(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="nicetransfer-v{VERSION}.zip"'},
+    )
+
+@app.get("/download/license")
+async def download_license():
+    lic = SCRIPT_DIR / "LICENSE"
+    content = lic.read_text() if lic.exists() else "LICENSE file not found."
+    return PlainTextResponse(content)
 
 def _resolve_file(folder, filename):
     dir_map = {d.name: d for d in [UPLOAD_DIR, DOWNLOAD_DIR, SHARE_DIR]}
@@ -1086,13 +1186,13 @@ async def preview_file(folder: str, filename: str):
 
 @app.get("/.well-known/mcp/server-card.json")
 async def mcp_server_card():
-    sections = [s for s, on in [("upload",   state.upload_enabled),
-                                 ("download", state.download_enabled),
-                                 ("share",    state.share_enabled)] if on]
+    sections = [s for s, on in [("share",    state.share_enabled),
+                                 ("upload",   state.upload_enabled),
+                                 ("download", state.download_enabled)] if on]
     return JSONResponse({
         "name":        "NiceTransfer",
         "description": "Local file transfer hub — upload, download and share files on the local network via browser.",
-        "version":     "0.5",
+        "version":     VERSION,
         "url":         f"http://{LOCAL_IP}:{PORT}",
         "mcp": {
             "endpoint":       f"http://{LOCAL_IP}:{PORT}/mcp",
@@ -1106,9 +1206,9 @@ async def mcp_server_card():
     })
 
 def _llms_body():
-    sections = [s for s, on in [("upload",   state.upload_enabled),
-                                 ("download", state.download_enabled),
-                                 ("share",    state.share_enabled)] if on]
+    sections = [s for s, on in [("share",    state.share_enabled),
+                                 ("upload",   state.upload_enabled),
+                                 ("download", state.download_enabled)] if on]
     mcp_url  = f"http://{LOCAL_IP}:{PORT}/mcp?token={TOKEN}"
     llms_url = f"http://{LOCAL_IP}:{PORT}/llms.txt?token={TOKEN}"
     return (
@@ -1144,6 +1244,17 @@ def _llms_body():
         f"download_file(section, filename)\n"
         f"  section: 'upload' | 'download' | 'share'\n"
         f"  Returns: {{filename, content_base64, bytes}}\n\n"
+
+        f"## Pages\n\n"
+        f"  /          — main transfer interface (sections, file lists, control panel)\n"
+        f"  /manual    — user manual\n"
+        f"  /changelog — version history\n"
+        f"  /get       — source code download (AGPL v3 compliance)\n\n"
+
+        f"## Source & license\n\n"
+        f"NiceTransfer is AGPL v3. Source download endpoints (token required):\n\n"
+        f"  /download/source  — ZIP of all source files\n"
+        f"  /download/license — plain text LICENSE\n\n"
 
         f"## Notes\n\n"
         f"- The token regenerates on each server start unless a fixed token is set in config.toml.\n"
@@ -1304,7 +1415,7 @@ if HAS_MCP:
 _MCP_URL = f"http://127.0.0.1:{PORT}/mcp?token={TOKEN}"
 
 _banner_lines = [
-    "NiceTransfer v1.0",
+    f"NiceTransfer v{VERSION}",
     None,
     f"upload  : {UPLOAD_DIR}",
     f"download: {DOWNLOAD_DIR}",

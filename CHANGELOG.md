@@ -1,14 +1,27 @@
 # Changelog
 
-## Hero layout, color consistency, Manual polish — Joko, 28. April 2026
+## v1.1 — Share first, /get page, source download — Joko, 28. April 2026, 21:49
+
+- **v1.1** — version bump; version constant now used in banner, footer, ZIP filename, and server-card.json
+- **Share section first** — reordered in nav anchors, section toggles, client permissions, file section rendering; most common use case is bidirectional sharing, so it leads
+- **`/get` page** — dedicated page for source download (AGPL v3 compliance); platform section ("Coming soon. Maybe."), source ZIP button in orange, license text viewer
+- **`/download/source`** — streams a ZIP of all source files on the fly; filename includes version (e.g. `nicetransfer-v1.1.zip`)
+- **`/download/license`** — serves the plain-text `LICENSE` file
+- **Footer on all pages** — `build_footer()` appended to `/`, `/manual`, `/changelog`, `/get`; shows `© 2026 Joko Keuschnig · AGPL v3` with link to `/get`
+- **"Get" added to dropdown menu**
+- **`/llms.txt` and `/llms-local.txt`** — now document all human-readable pages (`/manual`, `/changelog`, `/get`) and all source/license download endpoints
+- **Manual** — section order updated to Share-first throughout (features list, sections table)
+
+## Hero layout, color consistency, Manual polish — Joko, 28. April 2026, 19:36
 
 - **Connection hero** — "Scan QR code to connect" now appears directly under the QR code, URL with copy/share below; hero content shifted upward via `padding-bottom` on the hero container (avoids overflow issues with negative margins)
 - **Color consistency** — Set button changed from `color=orange` (Quasar built-in) to `color=primary`; all accent colors now flow through `--nt-orange` / `--q-primary` in `nicetransfer.css` — one edit changes the full color scheme
 - **Manual** — session timeout control documented; NiceGUI attribution rewritten ("built on NiceGUI, a Python UI framework by Zauberzeug GmbH" with links to nicegui.io and zauberzeug.com)
+- **AGPL-3.0** — license header (`SPDX-License-Identifier`) and copyright line added to `nicetransfer.py`; times added to all existing changelog entries
 
-→ [4cae0f4](https://github.com/joko-zauberzeug/nicetransfer/commit/4cae0f4)
+→ [24823d9](https://github.com/joko-zauberzeug/nicetransfer/commit/24823d9b150adaae21bffa067e88d13e199ccc04)
 
-## Session timeout control, countdown display — Joko, 28. April 2026
+## Session timeout control, countdown display — Joko, 28. April 2026, 18:40
 
 - **Countdown in header** — when a timeout is active, a monospace `⏱ MM:SS` counter appears directly under the logo; stable width (no jitter), visible on all pages
 - **Timeout control in Control panel** — number input + **Set** button to start or restart the countdown at runtime; set to 0 to disable; "Client permissions" and "Session timeout" subheadings now in orange for visual consistency
@@ -16,7 +29,7 @@
 
 → [7d5b0a4](https://github.com/joko-zauberzeug/nicetransfer/commit/7d5b0a4)
 
-## Double-start prevention, llms-local.txt — Joko, 28. April 2026
+## Double-start prevention, llms-local.txt — Joko, 28. April 2026, 16:58
 
 - **PID file (`.nicetransfer.pid`)** — written on startup, deleted on exit; contains `pid` and `port`; NiceTransfer refuses to start from the same directory if a live process is already running, with a clear error message and ready-to-run restart command; stale PID files (crash) are silently cleaned up
 - **`/llms-local.txt`** — localhost-only endpoint (403 for external clients); contains token session guidance, PID file check instructions, restart procedure with pgrep wait loop, exit codes 143/144, and security note (never redirect banner output to /tmp)
@@ -25,7 +38,7 @@
 
 → [6896711](https://github.com/joko-zauberzeug/nicetransfer/commit/6896711)
 
-## v1.0 — MCP server, AI operating guide — Joko, 28. April 2026
+## v1.0 — MCP server, AI operating guide — Joko, 28. April 2026, 13:20
 
 - **MCP server (`/mcp`)** — Streamable HTTP endpoint fully working; `FastMCP` mounted into NiceGUI's FastAPI app with `streamable_http_path="/"` (fixes path-stripping by Starlette's `Mount`) and `host="0.0.0.0"` (disables auto DNS-rebinding protection that would block LAN clients); session manager lifespan wired via `app.on_startup` / `app.on_shutdown` (Starlette `Mount` does not propagate lifespan events)
 - Four MCP tools: `get_status`, `list_files`, `upload_file`, `download_file`; path traversal prevented via `safe_filename()`
@@ -36,7 +49,7 @@
 
 → [f413094](https://github.com/joko-zauberzeug/nicetransfer/commit/f413094)
 
-## AI discovery layer — Joko, 27. April 2026
+## AI discovery layer — Joko, 27. April 2026, 21:45
 
 - **Meta tags in `<head>`** — every page includes `mcp-server`, `mcp-server-card`, and `llms-txt` meta tags with full token-bearing URLs; an AI app that scans the QR code and fetches the page immediately knows how to connect
 - **`/.well-known/mcp/server-card.json`** — machine-readable capability description: name, version, MCP endpoint, transport, authentication, active sections, tool list
@@ -47,7 +60,7 @@
 
 → [19c0ab9](https://github.com/joko-zauberzeug/nicetransfer/commit/19c0ab9)
 
-## Token everywhere, auto-shutdown timeout — Joko, 27. April 2026
+## Token everywhere, auto-shutdown timeout — Joko, 27. April 2026, 21:27
 
 - **Token required for all routes** — localhost exception removed; `/download` and `/preview` no longer bypass the token check; every request (browser, download link, preview, future MCP) requires the token
 - `webbrowser.open` on startup now opens `/?token=TOKEN` so the local browser works without manual URL editing
@@ -58,14 +71,14 @@
 
 → [bd9a9b4](https://github.com/joko-zauberzeug/nicetransfer/commit/bd9a9b4)
 
-## Cleanup: install.sh template, dead CSS — Joko, 27. April 2026
+## Cleanup: install.sh template, dead CSS — Joko, 27. April 2026, 20:26
 
 - `install.sh` now generates a complete `config.toml` including `[ui]` and `[permissions]` sections — fresh installs get correct defaults out of the box
 - Removed unused `.nt-qr` CSS rule (small 220 px QR, superseded by `.nt-qr-hero`)
 
 → [fbc11ec](https://github.com/joko-zauberzeug/nicetransfer/commit/fbc11ec)
 
-## Undo delete, camera upload, default client permissions — Joko, 27. April 2026
+## Undo delete, camera upload, default client permissions — Joko, 27. April 2026, 20:14
 
 - **Undo last delete** — after moving files to Trash an undo bar appears in the section ("N file(s) moved to trash" + Undo + ✕ dismiss); auto-dismisses after 10 seconds; per-section and per-client; works even when Trash is not visible to the client
 - `asyncio.create_task` + `asyncio.sleep(10)` for cancellable auto-dismiss; undo handler runs synchronously in the click context to keep `ui.notify` working
