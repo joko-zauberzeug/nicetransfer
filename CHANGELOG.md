@@ -1,6 +1,6 @@
 # Changelog
 
-## Hero layout, color consistency, Manual polish — 28. April 2026
+## Hero layout, color consistency, Manual polish — Joko, 28. April 2026
 
 - **Connection hero** — "Scan QR code to connect" now appears directly under the QR code, URL with copy/share below; hero content shifted upward via `padding-bottom` on the hero container (avoids overflow issues with negative margins)
 - **Color consistency** — Set button changed from `color=orange` (Quasar built-in) to `color=primary`; all accent colors now flow through `--nt-orange` / `--q-primary` in `nicetransfer.css` — one edit changes the full color scheme
@@ -8,7 +8,7 @@
 
 → [4cae0f4](https://github.com/joko-zauberzeug/nicetransfer/commit/4cae0f4)
 
-## Session timeout control, countdown display — 28. April 2026
+## Session timeout control, countdown display — Joko, 28. April 2026
 
 - **Countdown in header** — when a timeout is active, a monospace `⏱ MM:SS` counter appears directly under the logo; stable width (no jitter), visible on all pages
 - **Timeout control in Control panel** — number input + **Set** button to start or restart the countdown at runtime; set to 0 to disable; "Client permissions" and "Session timeout" subheadings now in orange for visual consistency
@@ -16,7 +16,7 @@
 
 → [7d5b0a4](https://github.com/joko-zauberzeug/nicetransfer/commit/7d5b0a4)
 
-## Double-start prevention, llms-local.txt — 28. April 2026
+## Double-start prevention, llms-local.txt — Joko, 28. April 2026
 
 - **PID file (`.nicetransfer.pid`)** — written on startup, deleted on exit; contains `pid` and `port`; NiceTransfer refuses to start from the same directory if a live process is already running, with a clear error message and ready-to-run restart command; stale PID files (crash) are silently cleaned up
 - **`/llms-local.txt`** — localhost-only endpoint (403 for external clients); contains token session guidance, PID file check instructions, restart procedure with pgrep wait loop, exit codes 143/144, and security note (never redirect banner output to /tmp)
@@ -25,7 +25,7 @@
 
 → [6896711](https://github.com/joko-zauberzeug/nicetransfer/commit/6896711)
 
-## v1.0 — MCP server, AI operating guide — 28. April 2026
+## v1.0 — MCP server, AI operating guide — Joko, 28. April 2026
 
 - **MCP server (`/mcp`)** — Streamable HTTP endpoint fully working; `FastMCP` mounted into NiceGUI's FastAPI app with `streamable_http_path="/"` (fixes path-stripping by Starlette's `Mount`) and `host="0.0.0.0"` (disables auto DNS-rebinding protection that would block LAN clients); session manager lifespan wired via `app.on_startup` / `app.on_shutdown` (Starlette `Mount` does not propagate lifespan events)
 - Four MCP tools: `get_status`, `list_files`, `upload_file`, `download_file`; path traversal prevented via `safe_filename()`
@@ -36,7 +36,7 @@
 
 → [f413094](https://github.com/joko-zauberzeug/nicetransfer/commit/f413094)
 
-## AI discovery layer — 27. April 2026
+## AI discovery layer — Joko, 27. April 2026
 
 - **Meta tags in `<head>`** — every page includes `mcp-server`, `mcp-server-card`, and `llms-txt` meta tags with full token-bearing URLs; an AI app that scans the QR code and fetches the page immediately knows how to connect
 - **`/.well-known/mcp/server-card.json`** — machine-readable capability description: name, version, MCP endpoint, transport, authentication, active sections, tool list
@@ -47,7 +47,7 @@
 
 → [19c0ab9](https://github.com/joko-zauberzeug/nicetransfer/commit/19c0ab9)
 
-## Token everywhere, auto-shutdown timeout — 27. April 2026
+## Token everywhere, auto-shutdown timeout — Joko, 27. April 2026
 
 - **Token required for all routes** — localhost exception removed; `/download` and `/preview` no longer bypass the token check; every request (browser, download link, preview, future MCP) requires the token
 - `webbrowser.open` on startup now opens `/?token=TOKEN` so the local browser works without manual URL editing
@@ -58,14 +58,14 @@
 
 → [bd9a9b4](https://github.com/joko-zauberzeug/nicetransfer/commit/bd9a9b4)
 
-## Cleanup: install.sh template, dead CSS — 27. April 2026
+## Cleanup: install.sh template, dead CSS — Joko, 27. April 2026
 
 - `install.sh` now generates a complete `config.toml` including `[ui]` and `[permissions]` sections — fresh installs get correct defaults out of the box
 - Removed unused `.nt-qr` CSS rule (small 220 px QR, superseded by `.nt-qr-hero`)
 
 → [fbc11ec](https://github.com/joko-zauberzeug/nicetransfer/commit/fbc11ec)
 
-## Undo delete, camera upload, default client permissions — 27. April 2026
+## Undo delete, camera upload, default client permissions — Joko, 27. April 2026
 
 - **Undo last delete** — after moving files to Trash an undo bar appears in the section ("N file(s) moved to trash" + Undo + ✕ dismiss); auto-dismisses after 10 seconds; per-section and per-client; works even when Trash is not visible to the client
 - `asyncio.create_task` + `asyncio.sleep(10)` for cancellable auto-dismiss; undo handler runs synchronously in the click context to keep `ui.notify` working
@@ -75,7 +75,7 @@
 
 → [cffdcf8](https://github.com/joko-zauberzeug/nicetransfer/commit/cffdcf8)
 
-## Trash, hero landing page, navigation overhaul and typography — 27. April 2026, 13:57
+## Trash, hero landing page, navigation overhaul and typography — Joko, 27. April 2026, 13:57
 
 - **Trash section** — deleted files move to Trash instead of being removed permanently; sidecar `.meta` files store original name and source section
 - `move_to_trash()`, `restore_from_trash()`, `trash_entries()` helpers; timestamp-prefix naming avoids conflicts
@@ -94,7 +94,7 @@
 
 → [ec3a46a](https://github.com/joko-zauberzeug/nicetransfer/commit/ec3a46a)
 
-## AI integration concept documented — 27. April 2026, 08:11
+## AI integration concept documented — Joko, 27. April 2026, 08:11
 
 - Added `MCP.md` — concept and research notes for AI integration
 - Three tiers: one-command MCP registration, in-chat paste, QR-based auto-discovery
@@ -105,7 +105,7 @@
 
 → [9c46b53](https://github.com/joko-zauberzeug/nicetransfer/commit/9c46b532c4a31918d9d4a0a2186e8a2873f889d3)
 
-## MCP.md: HTML meta tag discovery — 27. April 2026, 08:26
+## MCP.md: HTML meta tag discovery — Joko, 27. April 2026, 08:26
 
 - HTML `<meta>` tags in `<head>` as alternative to well-known URL convention
 - Claude fetches URL → reads `<head>` → finds MCP pointer → no prior knowledge needed
@@ -114,7 +114,7 @@
 
 → [3f15bac](https://github.com/joko-zauberzeug/nicetransfer/commit/3f15bac4efe31a686f807f98fa173f7bd215e42c)
 
-## Visual overhaul and mobile navigation — 26. April 2026, 11:22
+## Visual overhaul and mobile navigation — Joko, 26. April 2026, 11:22
 
 - Inter font self-hosted (OFL) — same typeface as nicegui.io, no external request, works offline
 - Page background: subtle off-white (`#f8fafc`) in light mode; cards lift off with a soft shadow instead of hard borders
@@ -129,13 +129,13 @@
 
 → [94dfe26](https://github.com/joko-zauberzeug/nicetransfer/commit/94dfe2607f364a5bb466c51b6fc90cfbf3e4c43c)
 
-## Platform distribution notes — 25. April 2026, 23:35
+## Platform distribution notes — Joko, 25. April 2026, 23:35
 
 - Added `PLATFORMS.md` — feasibility notes for macOS (.app bundle), Linux (AppImage, Flatpak), and Android (Termux)
 
 → [926553b](https://github.com/joko-zauberzeug/nicetransfer/commit/926553bfa419bac86d93046ad70f3396e797c89c)
 
-## Manual update — 25. April 2026, 23:15
+## Manual update — Joko, 25. April 2026, 23:15
 
 - NiceTransfer renamed consistently throughout (was nicetransfer)
 - Built on [NiceGUI](https://nicegui.io) by Zauberzeug GmbH — mentioned in the intro
@@ -147,7 +147,7 @@
 
 → [4b7428a](https://github.com/joko-zauberzeug/nicetransfer/commit/4b7428aa0f67718b1c2e0faab569fa7e968fc0ca)
 
-## Live sync, config defaults, naming and polish — 25. April 2026, 22:38
+## Live sync, config defaults, naming and polish — Joko, 25. April 2026, 22:38
 
 - File list updates automatically on all connected clients within 3 seconds when any client uploads — no manual refresh needed
 - New `[ui]` section in `config.toml`: set default theme (`auto` / `light` / `dark`) and which sections are shown on startup
@@ -160,7 +160,7 @@
 
 → [e2a329e](https://github.com/joko-zauberzeug/nicetransfer/commit/e2a329ebb9d7bc54f1dfa31d374eac6187093be4)
 
-## UI polish: multi-select ZIP download, consistent sizing, CSS extracted — 25. April 2026, 21:43
+## UI polish: multi-select ZIP download, consistent sizing, CSS extracted — Joko, 25. April 2026, 21:43
 
 - Checkboxes in the file list for multi-file selection — native Quasar `selection=multiple`
 - Select-all checkbox in the table header; ZIP download button in the same row (grey when nothing selected, orange when active)
@@ -174,7 +174,7 @@
 
 → [36c7ddb](https://github.com/joko-zauberzeug/nicetransfer/commit/36c7ddbf25402f69b6d74ea82b680c1f588f765e)
 
-## Drag & drop, image preview, color consistency — 25. April 2026, 14:53
+## Drag & drop, image preview, color consistency — Joko, 25. April 2026, 14:53
 
 - Drag & drop files directly onto the upload zone — visual highlight while dragging
 - Image preview via NiceGUI dialog with base64 data URI — no new tab, no download dialog in Firefox
@@ -185,7 +185,7 @@
 
 → [e1805e6](https://github.com/joko-zauberzeug/nicetransfer/commit/e1805e68c04a6448566ff6615b6d2556850c0d74)
 
-## README trimmed, Manual completed — 25. April 2026, 13:13
+## README trimmed, Manual completed — Joko, 25. April 2026, 13:13
 
 README is now a short pitch with a quick start — everything else lives in the Manual.
 
@@ -195,7 +195,7 @@ README is now a short pitch with a quick start — everything else lives in the 
 
 → [40c6d2b](https://github.com/joko-zauberzeug/nicetransfer/commit/40c6d2bf94b15d154c0c5b2e1e083ce10fc62bf6)
 
-## Documentation update — 25. April 2026, 12:54
+## Documentation update — Joko, 25. April 2026, 12:54
 
 README and Manual restructured with a clearer focus on what nicetransfer is and who uses it.
 
@@ -206,7 +206,7 @@ README and Manual restructured with a clearer focus on what nicetransfer is and 
 
 → [5eea327](https://github.com/joko-zauberzeug/nicetransfer/commit/5eea327dc5437ce556375fc0eb1d3c148a9a0358)
 
-## Network awareness — 25. April 2026, 12:10
+## Network awareness — Joko, 25. April 2026, 12:10
 
 nicetransfer now detects network state at startup and while running.
 
@@ -217,7 +217,7 @@ nicetransfer now detects network state at startup and while running.
 
 → [6ac5f9a](https://github.com/joko-zauberzeug/nicetransfer/commit/6ac5f9a17908936dc9e2914c258ba5e00ace82f8)
 
-## First fixes after going public — 25. April 2026, 11:24
+## First fixes after going public — Joko, 25. April 2026, 11:24
 
 Several small issues discovered while preparing the repo for GitHub.
 
@@ -228,7 +228,7 @@ Several small issues discovered while preparing the repo for GitHub.
 
 → [742f563](https://github.com/joko-zauberzeug/nicetransfer/commit/742f5633487a254681b11a1dfd051a712ea4c2ee)
 
-## v0.4 — 2026-04-25
+## v0.4 — Joko, 2026-04-25
 
 ### Changed
 - Complete UI overhaul using native NiceGUI/Quasar components
@@ -239,7 +239,7 @@ Several small issues discovered while preparing the repo for GitHub.
 - Section navigation in header as tabs with smooth scroll
 - Hamburger menu as native Quasar dropdown
 
-## v0.3 — 2026-04-25
+## v0.3 — Joko, 2026-04-25
 
 ### New
 - Header navigation with Manual and Changelog
@@ -249,7 +249,7 @@ Several small issues discovered while preparing the repo for GitHub.
 - Image preview for JPG, PNG, GIF, WebP, SVG
 - CSS extracted to separate file (`nicetransfer.css`)
 
-## v0.2 — 2026-04-25
+## v0.2 — Joko, 2026-04-25
 
 ### New
 - Three separate folders: upload / download / share
@@ -263,7 +263,7 @@ Several small issues discovered while preparing the repo for GitHub.
 - Default port: 7777 (no conflict with NiceGUI default)
 - Local access (127.0.0.1) does not require a token
 
-## v0.1 — 2026-04-25
+## v0.1 — Joko, 2026-04-25
 
 ### Initial release
 - Upload via browser
