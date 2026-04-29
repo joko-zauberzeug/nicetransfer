@@ -7,6 +7,8 @@
 - **All `color=grey-X` props removed** — buttons and icons now use `nt-text-secondary` class; consistent in both themes
 - **Theme persistence** — user's light/dark/auto choice stored in `app.storage.user` and restored on every page navigation; no more reset to config default when switching pages
 
+→ [83b09ce](https://github.com/joko-zauberzeug/nicetransfer/commit/83b09ce)
+
 ## Updates GUI, clean shutdown, color system — Joko, 29. April 2026, 20:47
 
 - **Updates GUI in Control panel** — "Updates" subsection shows installed NiceTransfer and NiceGUI versions; **Check** button queries the configured channel and shows a combined notification ("NiceTransfer v1.2 · NiceGUI 3.11.1 — all up to date", stays until dismissed); if a new version is found, an **Upgrade** button appears and streams `upgrade.sh` output live into a log dialog; auto-refreshes 3 s after page load so the startup check result is visible without clicking

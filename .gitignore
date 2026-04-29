@@ -26,5 +26,11 @@ data/share/*
 MCP.md
 PLATFORMS.md
 
+# NiceGUI runtime cache
+.nicegui/
+
+# NiceTransfer PID file (written at runtime)
+.nicetransfer.pid
+
 # macOS
 .DS_Store
