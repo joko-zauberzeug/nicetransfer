@@ -1,10 +1,21 @@
 # Changelog
 
+## v1.2 — Upgrade script, update check, NiceGUI 3.11.1 — Joko, 29. April 2026, 14:31
+
+- **`upgrade.sh`** — new upgrade script; detects git vs. standalone install; interactive `[Y/n/d]` prompts with diff view per file; handles `run.sh` regeneration separately; `--yes` for non-interactive use, `--check` for JSON status output (GUI-ready)
+- **Update channels** — `stable` (latest release tag) or `rolling` (main branch); configurable in `config.toml` under `[updates]`; `--channel` flag to override per run
+- **Startup update check** — `check_on_start = true` (default) prints to terminal if a new version is available; `notify_deps = true` also checks nicegui and warns about compatibility
+- **NiceGUI 3.11.1** — upgraded from 3.11.0; tested, no regressions
+- **v1.2** — version bump; version number now only defined once (`VERSION` constant); removed redundant version from module docstring
+- **Manual** — Upgrading section added: upgrade script usage, channel config, update check options
+
 ## Going public — Joko, 29. April 2026, 13:13
 
 - **Repository is now public** — NiceTransfer v1.1 released openly under AGPL v3
 - **README** — local URL in "How it works" now correctly shows `http://127.0.0.1:7777/?token=...` instead of tokenless `http://localhost:7777`
 - **Repo cleanup** — `MCP.md` and `PLATFORMS.md` removed from the repository (internal planning docs, kept locally via `.gitignore`)
+
+→ [3085019](https://github.com/joko-zauberzeug/nicetransfer/commit/3085019)
 
 ## Banner and Manual: token in local URL — Joko, 29. April 2026, 00:26
 

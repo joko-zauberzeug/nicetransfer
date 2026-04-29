@@ -100,6 +100,35 @@ The default sections and theme are read from `config.toml`. Command-line flags a
 pkill -f nicetransfer.py
 ```
 
+### Upgrading
+
+```bash
+./upgrade.sh
+```
+
+The upgrade script detects whether NiceTransfer was installed via `git clone` or as a source download and handles both cases:
+
+- **Git install** — runs `git pull`, then optionally upgrades dependencies
+- **Standalone install** — downloads the latest version from GitHub, shows a diff for each changed file, and asks what to update
+
+For each change you can choose: **Y** (apply), **N** (skip), or **D** (show diff first). `run.sh` is handled separately and regenerated only if needed.
+
+```bash
+./upgrade.sh --yes    # apply all updates without prompting
+./upgrade.sh --check  # print available updates as JSON (for scripts/GUI)
+```
+
+To check for updates automatically on each start, enable it in `config.toml`:
+
+```toml
+[updates]
+check_on_start = true     # prints to terminal if a new version is available
+notify_deps    = true     # also checks nicegui and other dependencies
+channel        = "stable" # "stable" (latest release) or "rolling" (main branch)
+```
+
+**Note on dependency updates:** NiceTransfer is tested with the dependency versions installed at release time. Upgrading dependencies independently may introduce incompatibilities — `upgrade.sh` will warn you before doing so.
+
 ### Control panel
 
 Open the local URL shown in the banner (e.g. `http://127.0.0.1:7777/?token=...`) on the server device. The page opens with a full-screen hero showing the QR code. Scroll down to reach the control panel and file sections.

@@ -92,6 +92,14 @@ client_delete_share    = true
 # Whether clients can see the Trash section and restore files from it
 client_trash_visible   = false
 client_trash_restore   = false
+
+[updates]
+# check for new NiceTransfer version on each startup (prints to terminal + UI notification)
+check_on_start = true
+# notify about available dependency updates (nicegui etc.) — with compatibility warning
+notify_deps    = false
+# update channel: "stable" (latest release tag) or "rolling" (main branch)
+channel        = "stable"
 EOF
     echo "✓ config.toml created"
 else

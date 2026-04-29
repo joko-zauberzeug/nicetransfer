@@ -10,3 +10,11 @@ share    = "~/nicetransfer/share"
 port  = 7777
 # token: leave empty = randomly generated on each start; set own value = fixed
 token = ""
+
+[updates]
+# check for new NiceTransfer version on each startup (prints to terminal + UI notification)
+check_on_start = true
+# notify about available dependency updates (nicegui etc.) — with compatibility warning
+notify_deps    = false
+# update channel: "stable" (latest release tag) or "rolling" (main branch)
+channel        = "stable"

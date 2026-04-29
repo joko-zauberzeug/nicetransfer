@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 Joko Keuschnig
 """
-nicetransfer v1.1 — local file transfer via browser
+nicetransfer — local file transfer via browser
 NiceGUI 3.x
 """
 
@@ -125,8 +125,11 @@ SHARE_DIR    = (ARGS.share_dir.expanduser().resolve()    if ARGS.share_dir
 TRASH_DIR    = DATA / "trash"
 PORT        = ARGS.port or cfg_int("server", "port", 7777)
 TOKEN       = ARGS.token or cfg_str("server", "token", "") or secrets.token_urlsafe(12)
-TIMEOUT_MIN = cfg_int("server", "timeout", 0)   # 0 = no timeout
-VERSION     = "1.1"
+TIMEOUT_MIN          = cfg_int("server",  "timeout",        0)   # 0 = no timeout
+VERSION              = "1.2"
+UPDATE_CHECK_ON_START = cfg_bool("updates", "check_on_start", False)
+NOTIFY_DEPS          = cfg_bool("updates", "notify_deps",     False)
+UPDATE_CHANNEL       = cfg_str("updates",  "channel",         "stable")
 
 for d in [UPLOAD_DIR, DOWNLOAD_DIR, SHARE_DIR, TRASH_DIR]:
     d.mkdir(parents=True, exist_ok=True)
@@ -1481,6 +1484,56 @@ def _setup_sigterm_cleanup():
     signal.signal(signal.SIGTERM, _handler)
 
 app.on_startup(_setup_sigterm_cleanup)
+
+# ── 18. Update check ──────────────────────────────────────────────────────────
+
+_update_notice: dict = {}   # filled by background check; read by UI
+
+async def _check_updates():
+    import urllib.request, json as _j, importlib.metadata
+
+    if UPDATE_CHECK_ON_START:
+        try:
+            if UPDATE_CHANNEL == "rolling":
+                url = "https://raw.githubusercontent.com/joko-zauberzeug/nicetransfer/main/nicetransfer.py"
+                with urllib.request.urlopen(url, timeout=5) as r:
+                    src = r.read().decode()
+                import re as _re
+                m = _re.search(r'^VERSION\s*=\s*"([^"]+)"', src, _re.MULTILINE)
+                latest_ver = m.group(1) if m else None
+                channel_label = "rolling/main"
+            else:
+                with urllib.request.urlopen(
+                    "https://api.github.com/repos/joko-zauberzeug/nicetransfer/tags",
+                    timeout=5
+                ) as r:
+                    tags       = _j.loads(r.read())
+                    latest_tag = tags[0]["name"] if tags else None
+                    latest_ver = latest_tag.lstrip("v") if latest_tag else None
+                channel_label = "stable"
+            if latest_ver and latest_ver != VERSION:
+                _update_notice["nt"] = {"local": VERSION, "latest": latest_ver, "channel": channel_label}
+                print(f"⬆  NiceTransfer v{latest_ver} available [{channel_label}]  (run ./upgrade.sh to update)")
+        except Exception:
+            pass
+
+    if NOTIFY_DEPS:
+        try:
+            with urllib.request.urlopen(
+                "https://pypi.org/pypi/nicegui/json", timeout=5
+            ) as r:
+                latest_ng = _j.loads(r.read())["info"]["version"]
+            local_ng = importlib.metadata.version("nicegui")
+            if latest_ng != local_ng:
+                _update_notice["nicegui"] = {"local": local_ng, "latest": latest_ng}
+                print(f"⬆  NiceGUI {latest_ng} available (installed: {local_ng})"
+                      f" — NiceTransfer v{VERSION} was tested with installed version")
+        except Exception:
+            pass
+
+if UPDATE_CHECK_ON_START or NOTIFY_DEPS:
+    app.on_startup(lambda: asyncio.ensure_future(_check_updates()))
+
 app.on_startup(lambda: threading.Timer(
     1.5, lambda: webbrowser.open(f"http://localhost:{PORT}/?token={TOKEN}")).start())
 
