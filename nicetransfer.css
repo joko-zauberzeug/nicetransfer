@@ -22,13 +22,6 @@
                  U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-:root {
-  --nt-orange: #FF6D00;
-  --q-primary: #FF6D00;
-  --q-primary-r: 255;
-  --q-primary-g: 109;
-  --q-primary-b: 0;
-}
 
 /* ── Base font ── */
 body, .q-body, .nicegui-content {
@@ -39,7 +32,6 @@ body, .q-body, .nicegui-content {
 
 /* ── Logo ── */
 .nt-logo {
-  color: var(--nt-orange) !important;
   font-size: 2rem;
   text-decoration: none;
 }
@@ -65,10 +57,6 @@ body, .q-body, .nicegui-content {
   background: transparent !important;
 }
 
-/* ── Switches (Control panel toggles) ── */
-.q-toggle__inner--truthy {
-  color: var(--nt-orange) !important;
-}
 
 /* ── Responsive navigation ── */
 @media (max-width: 599px) {
@@ -84,7 +72,6 @@ body, .q-body, .nicegui-content {
   font-size: 0.85rem;
 }
 .nt-section-title {
-  color: var(--nt-orange) !important;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
@@ -153,8 +140,8 @@ body, .q-body, .nicegui-content {
 /* ── Drag & drop zone ── */
 .nt-drop-zone { transition: color 0.15s, background 0.15s; }
 .q-uploader--dnd .nt-drop-zone {
-  color: var(--nt-orange) !important;
-  background: rgba(255, 109, 0, 0.06);
+  color: var(--q-primary) !important;
+  background: color-mix(in srgb, var(--q-primary) 6%, transparent);
 }
 
 /* ── Markdown: constrain flex-item width, scroll code/tables ── */

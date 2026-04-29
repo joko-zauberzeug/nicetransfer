@@ -96,11 +96,25 @@ The default sections and theme are read from `config.toml`. Command-line flags a
 
 ### Stopping
 
+**Ctrl+C** in the terminal where `./run.sh` is running triggers a clean shutdown — NiceGUI lifecycle is respected, no warnings.
+
+To stop remotely (e.g. from a script or AI client):
+
+```bash
+curl -s -X POST "http://127.0.0.1:7777/shutdown?token=<token>"
+```
+
+The token is shown in the startup banner. As a last resort:
+
 ```bash
 pkill -f nicetransfer.py
 ```
 
 ### Upgrading
+
+The easiest way is via the **Control panel → Updates** section in the browser. Click **Check** to see if a new version is available, then **Upgrade** to apply it automatically. NiceTransfer restarts itself after a successful upgrade.
+
+From the terminal (with interactive review):
 
 ```bash
 ./upgrade.sh
@@ -140,6 +154,7 @@ Open the local URL shown in the banner (e.g. `http://127.0.0.1:7777/?token=...`)
 - **Section toggles** — enable/disable Upload, Download, Share at runtime
 - **Client permissions** — grant clients the ability to delete files per section, see Trash, or restore from Trash
 - **Session timeout** — set a timeout in minutes and click **Set** to start or restart the countdown; set to 0 to disable; a countdown appears under the logo in the header when a timeout is active
+- **Updates** — shows installed versions of NiceTransfer and NiceGUI; click **Check** to check for updates; if an update is available, click **Upgrade** to apply it and restart automatically
 - **Sortable file list** — click column headers to sort
 - **Multi-file selection** — checkboxes in the file list; top checkbox selects all
 - **ZIP download** — select files and click the download icon in the table header

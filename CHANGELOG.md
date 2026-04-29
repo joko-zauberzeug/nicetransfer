@@ -1,5 +1,14 @@
 # Changelog
 
+## Updates GUI, clean shutdown, color system — Joko, 29. April 2026, 20:47
+
+- **Updates GUI in Control panel** — "Updates" subsection shows installed NiceTransfer and NiceGUI versions; **Check** button queries the configured channel and shows a combined notification ("NiceTransfer v1.2 · NiceGUI 3.11.1 — all up to date", stays until dismissed); if a new version is found, an **Upgrade** button appears and streams `upgrade.sh` output live into a log dialog; auto-refreshes 3 s after page load so the startup check result is visible without clicking
+- **Clean shutdown via HTTP** — `POST /shutdown?token=...` triggers `app.shutdown()` for a fully clean NiceGUI teardown; documented in Manual (curl command) and `llms-local.txt`; replaces `pkill` as the recommended remote-stop method
+- **MCP `shutdown_server()` tool** — AI clients can shut down the server cleanly; added to MCP tool list and `llms.txt` / `llms-local.txt`
+- **Color system** — `app.colors(primary='#FF6D00')` replaces the old CSS variable approach; all Quasar `color=primary` props and `text-primary` classes follow it automatically; CSS cleaned up: removed `:root` color-variable block, redundant toggle rule, and all hardcoded `#FF6D00` / `deep-orange` references — one line in Python controls the full brand color
+- **`run.sh`** — `exec` replaces bash shell with Python process; Ctrl+C goes directly to uvicorn; `KeyboardInterrupt` after cleanup wrapped in `try/except` to suppress the cosmetic Python 3.14 asyncio traceback
+- **Manual** — Stopping section rewritten (Ctrl+C primary, curl `/shutdown` for remote, `pkill` last resort); Upgrading section gains GUI-first paragraph; Control panel list updated with Updates entry
+
 ## v1.2 — Upgrade script, update check, NiceGUI 3.11.1 — Joko, 29. April 2026, 14:31
 
 - **`upgrade.sh`** — new upgrade script; detects git vs. standalone install; interactive `[Y/n/d]` prompts with diff view per file; handles `run.sh` regeneration separately; `--yes` for non-interactive use, `--check` for JSON status output (GUI-ready)
@@ -8,6 +17,8 @@
 - **NiceGUI 3.11.1** — upgraded from 3.11.0; tested, no regressions
 - **v1.2** — version bump; version number now only defined once (`VERSION` constant); removed redundant version from module docstring
 - **Manual** — Upgrading section added: upgrade script usage, channel config, update check options
+
+→ [cee7660](https://github.com/joko-zauberzeug/nicetransfer/commit/cee7660)
 
 ## Going public — Joko, 29. April 2026, 13:13
 

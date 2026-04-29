@@ -373,6 +373,8 @@ async def token_guard(request, call_next):
 
 CSS = f'<link rel="stylesheet" href="/nt-static/nicetransfer.css?v={int(__import__("time").time())}">'
 
+app.colors(primary='#FF6D00')
+
 
 # ── 10. File section ──────────────────────────────────────────────────────────
 
@@ -411,7 +413,7 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
 
         # ── Row 1: centered title ─────────────────────────────────────────────
         with ui.row().classes("nt-section-header items-center justify-center w-full q-py-sm"):
-            ui.label(title).classes("nt-section-title text-h5")
+            ui.label(title).classes("nt-section-title text-h5 text-primary")
 
         # ── Row 2: drop zone + Upload Files (only when upload enabled) ────────
         if with_upload:
@@ -484,7 +486,7 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
                         "gap:0.5rem; background:rgba(255,109,0,0.08); border-radius:4px") as undo_bar:
                     undo_label = ui.label("").classes("text-body2 text-grey-8").style("flex:1; min-width:0")
                     ui.button("Undo", on_click=lambda: do_undo()) \
-                        .props("flat dense no-caps size=sm color=deep-orange")
+                        .props("flat dense no-caps size=sm color=primary")
                     ui.button(icon="close", on_click=lambda: dismiss_undo()) \
                         .props("flat round dense size=xs color=grey-5") \
                         .tooltip("Dismiss")
@@ -499,7 +501,7 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
             if has_actions:
                 zip_btn_html = (
                     """<q-btn flat dense round size="xs" icon="file_download"
-                           :color="$parent.selected && $parent.selected.length ? 'deep-orange' : 'grey-5'"
+                           :color="$parent.selected && $parent.selected.length ? 'primary' : 'grey-5'"
                            :disable="!$parent.selected || !$parent.selected.length"
                            @click.stop="$parent.$emit('download_zip')">
                         <q-tooltip anchor="bottom middle" self="top middle">Download selected as ZIP</q-tooltip>
@@ -508,7 +510,7 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
                 )
                 del_btn_html = (
                     """<q-btn flat dense round size="xs" icon="delete"
-                           :color="$parent.selected && $parent.selected.length ? 'deep-orange' : 'grey-5'"
+                           :color="$parent.selected && $parent.selected.length ? 'primary' : 'grey-5'"
                            :disable="!$parent.selected || !$parent.selected.length"
                            @click.stop="$parent.$emit('delete_selected')">
                         <q-tooltip anchor="bottom middle" self="top middle">Move selected to trash</q-tooltip>
@@ -595,12 +597,12 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
             table.add_slot("body-cell-name", """
                 <q-td :props="props">
                     <q-btn v-if="props.row.dl_url" flat dense round size="xs"
-                           icon="file_download" color="deep-orange" class="q-mr-xs"
+                           icon="file_download" color="primary" class="q-mr-xs"
                            tag="a" :href="props.row.dl_url" @click.stop>
                         <q-tooltip anchor="bottom middle" self="top middle">Download</q-tooltip>
                     </q-btn>
                     <q-btn v-if="props.row.is_img" flat dense round size="xs"
-                           icon="image" style="color:var(--nt-orange)" class="q-mr-xs"
+                           icon="image" color="primary" class="q-mr-xs"
                            @click.stop="$parent.$emit('preview', props.row.preview_url)">
                         <q-tooltip anchor="bottom middle" self="top middle">Preview</q-tooltip>
                     </q-btn>
@@ -640,7 +642,7 @@ def build_trash_section(can_restore: bool = True, can_empty: bool = True):
     with ui.card().classes("w-full q-pa-none nt-section").props('id="trash"'):
 
         with ui.row().classes("nt-section-header items-center justify-center w-full q-py-sm"):
-            ui.label("Trash").classes("nt-section-title text-h5")
+            ui.label("Trash").classes("nt-section-title text-h5 text-primary")
 
         with ui.column().classes("w-full q-pa-sm").style("gap:0.5rem"):
             search = ui.input(placeholder="Search...").props("dense outlined clearable").classes("w-full")
@@ -651,7 +653,7 @@ def build_trash_section(can_restore: bool = True, can_empty: bool = True):
 
             restore_btn_html = (
                 """<q-btn flat dense round size="xs" icon="restore"
-                       :color="$parent.selected && $parent.selected.length ? 'deep-orange' : 'grey-5'"
+                       :color="$parent.selected && $parent.selected.length ? 'primary' : 'grey-5'"
                        :disable="!$parent.selected || !$parent.selected.length"
                        @click.stop="$parent.$emit('restore_selected')">
                     <q-tooltip anchor="bottom middle" self="top middle">Restore selected</q-tooltip>
@@ -729,7 +731,7 @@ def build_header(is_dark, section_links=None, current="", is_local=False):
 
     with ui.header().classes("items-center q-px-md q-py-sm nt-header"):
         with ui.column().classes("gap-0 items-start"):
-            ui.html(f'<a href="{logo_href}" class="nt-logo">'
+            ui.html(f'<a href="{logo_href}" class="nt-logo text-primary">'
                     f'<span style="font-weight:700">Nice</span>'
                     f'<span style="font-weight:400">Transfer</span>'
                     f'</a>')
@@ -848,7 +850,7 @@ async def index(request: Request):
                 with ui.element("div").classes("nt-hero nt-section w-full").props('id="connection"'):
                     with ui.element("div").classes("nt-hero-content"):
                         if no_net:
-                            ui.icon("wifi_off").props("size=4rem").style("color: var(--nt-orange); opacity: 0.6")
+                            ui.icon("wifi_off").props("size=4rem color=primary").style("opacity: 0.6")
                             ui.label("No network detected").classes("text-h5")
                             ui.label("Other devices cannot connect") \
                                 .classes("text-body2 text-grey q-mb-sm")
@@ -856,7 +858,7 @@ async def index(request: Request):
                                 ui.markdown(hotspot_hint_md())
                         else:
                             ui.html(
-                                'Simple and <span style="color:var(--nt-orange)">NiceTransfer</span> of files.'
+                                'Simple and <span class="text-primary">NiceTransfer</span> of files.'
                             ).classes("text-h3 text-weight-bold")
                             with ui.element("div").classes("nt-qr-hero"):
                                 ui.html(qr)
@@ -889,7 +891,7 @@ async def index(request: Request):
 
                 with ui.card().classes("w-full q-pa-none nt-section").props('id="control"'):
                     with ui.row().classes("nt-section-header items-center justify-center w-full q-py-sm"):
-                        ui.label("Control").classes("nt-section-title text-h5")
+                        ui.label("Control").classes("nt-section-title text-h5 text-primary")
                     with ui.column().classes("w-full q-pa-sm").style("gap:0"):
                         for label, key, path in [
                             ("Share",         "share_enabled",    SHARE_DIR),
@@ -906,7 +908,7 @@ async def index(request: Request):
                                     .style("word-break:break-all; margin-top:-4px")
                             ui.separator().props("spaced=false")
 
-                        ui.label("Client permissions").classes("text-overline q-mt-sm").style("color: var(--nt-orange)")
+                        ui.label("Client permissions").classes("text-overline q-mt-sm text-primary")
                         ui.separator()
                         _restore_ref = {}
                         for label, key in [
@@ -940,7 +942,7 @@ async def index(request: Request):
                                         on_change=lambda e, k=_key: setattr(state, k, e.value))
                             ui.separator().props("spaced=false")
 
-                        ui.label("Session timeout").classes("text-overline q-mt-sm").style("color: var(--nt-orange)")
+                        ui.label("Session timeout").classes("text-overline q-mt-sm text-primary")
                         ui.separator()
                         with ui.row().classes("items-center justify-between w-full q-py-xs"):
                             ui.label("Timeout (minutes, 0 = off)")
@@ -952,7 +954,127 @@ async def index(request: Request):
                                     _timeout_active = max(0, int(timeout_input.value or 0))
                                     _start_time = _time.time()
                                     _start_shutdown_timer()
-                                ui.button("Set", on_click=apply_timeout).props("flat dense color=primary")
+                                ui.button("Set", on_click=apply_timeout) \
+                                    .props("flat dense color=primary")
+                        ui.separator().props("spaced=false")
+
+                        ui.label("Updates").classes("text-overline q-mt-sm text-primary")
+                        ui.separator()
+
+                        @ui.refreshable
+                        def update_status_display():
+                            if _update_notice.get("nt"):
+                                n = _update_notice["nt"]
+                                ui.label(f"v{n['latest']} available [{n['channel']}]") \
+                                    .classes("text-caption text-primary")
+                                ui.button("Upgrade", on_click=open_upgrade_dialog) \
+                                    .props("flat dense color=primary size=sm")
+                            elif _update_checked:
+                                ui.label("Up to date").classes("text-caption text-grey")
+                            else:
+                                ui.label("Not checked").classes("text-caption text-grey")
+                            if _update_notice.get("nicegui"):
+                                ng = _update_notice["nicegui"]
+                                ui.label(f"NiceGUI {ng['latest']} available (installed: {ng['local']})") \
+                                    .classes("text-caption text-grey")
+
+                        async def check_updates_now():
+                            check_btn.props(add="loading")
+                            await _check_updates(force=True)
+                            check_btn.props(remove="loading")
+                            update_status_display.refresh()
+                            import importlib.metadata as _im
+                            ng_ver = _im.version("nicegui")
+                            if _update_notice.get("nt"):
+                                n = _update_notice["nt"]
+                                ui.notify(
+                                    f"NiceTransfer v{n['latest']} available [{n['channel']}]",
+                                    type="warning", close_button=True, timeout=0,
+                                )
+                            elif not _update_notice.get("nicegui"):
+                                ui.notify(
+                                    f"NiceTransfer v{VERSION} · NiceGUI {ng_ver} — all up to date",
+                                    type="positive", close_button=True, timeout=0,
+                                )
+                            else:
+                                ui.notify(
+                                    f"NiceTransfer v{VERSION} — up to date",
+                                    type="positive", close_button=True, timeout=0,
+                                )
+                            if _update_notice.get("nicegui"):
+                                ng = _update_notice["nicegui"]
+                                ui.notify(
+                                    f"NiceGUI {ng['latest']} available (installed: {ng['local']})",
+                                    type="info", close_button=True, timeout=0,
+                                )
+
+                        def restart_after_upgrade():
+                            threading.Timer(2.0, lambda: subprocess.Popen(
+                                ["bash", str(SCRIPT_DIR / "run.sh")],
+                                cwd=str(SCRIPT_DIR),
+                                start_new_session=True,
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL,
+                            )).start()
+                            PID_FILE.unlink(missing_ok=True)
+                            app.shutdown()
+
+                        async def open_upgrade_dialog():
+                            n = _update_notice.get("nt", {})
+                            with ui.dialog().props("persistent") as dlg, \
+                                    ui.card().classes("w-full").style("min-width:420px;max-width:600px"):
+                                ui.label(f"Upgrade to v{n.get('latest', '?')}").classes("text-h6")
+                                ui.label(
+                                    "Applies all updates automatically. "
+                                    "For step-by-step review, run ./upgrade.sh in the terminal."
+                                ).classes("text-caption text-grey")
+                                log = ui.log(max_lines=200) \
+                                    .classes("w-full q-mt-sm").style("height:220px") \
+                                    .set_visibility(False)
+                                status = ui.label("").classes("text-caption q-mt-xs")
+                                with ui.row().classes("w-full justify-end q-mt-sm items-center"):
+                                    close_btn  = ui.button("Cancel", on_click=dlg.close).props("flat")
+                                    upgrade_btn = ui.button("Upgrade", color="warning") \
+                                        .props("unelevated")
+                                    restart_btn = ui.button("Restart now", color="primary") \
+                                        .props("unelevated").set_visibility(False)
+
+                                async def do_upgrade():
+                                    close_btn.set_visibility(False)
+                                    upgrade_btn.props(add="loading disable")
+                                    log.set_visibility(True)
+                                    proc = await asyncio.create_subprocess_exec(
+                                        str(SCRIPT_DIR / "upgrade.sh"), "--yes",
+                                        stdout=asyncio.subprocess.PIPE,
+                                        stderr=asyncio.subprocess.STDOUT,
+                                        cwd=str(SCRIPT_DIR),
+                                    )
+                                    async for line in proc.stdout:
+                                        log.push(line.decode().rstrip())
+                                    await proc.wait()
+                                    upgrade_btn.set_visibility(False)
+                                    if proc.returncode == 0:
+                                        status.set_text("Upgrade complete — restart to load the new version.")
+                                        restart_btn.set_visibility(True)
+                                    else:
+                                        status.set_text(f"Upgrade failed (exit {proc.returncode}).")
+                                        close_btn.set_text("Close")
+                                        close_btn.set_visibility(True)
+
+                                upgrade_btn.on("click", do_upgrade)
+                                restart_btn.on("click", restart_after_upgrade)
+                            dlg.open()
+
+                        with ui.row().classes("items-center justify-between w-full q-py-xs"):
+                            with ui.column().style("gap: 2px"):
+                                import importlib.metadata as _im
+                                _ng_ver = _im.version("nicegui")
+                                ui.label(f"NiceTransfer v{VERSION} and NiceGUI {_ng_ver}") \
+                                    .classes("text-body2")
+                                update_status_display()
+                            check_btn = ui.button("Check", on_click=check_updates_now) \
+                                .props("flat dense color=primary")
+                        ui.timer(3.0, update_status_display.refresh, once=True)
                         ui.separator().props("spaced=false")
 
             local_panel()
@@ -1076,7 +1198,7 @@ async def get_page(request: Request):
     with ui.column().classes("w-full q-pa-md").style("max-width: 860px; margin: 0 auto; gap: 1rem"):
 
         with ui.card().classes("w-full q-pa-md"):
-            ui.label("Source package").classes("nt-section-title text-overline")
+            ui.label("Source package").classes("nt-section-title text-overline text-primary")
             with ui.row().classes("items-center justify-between w-full q-mt-sm"):
                 with ui.column().style("gap: 0.25rem"):
                     ui.label(f"NiceTransfer v{VERSION}").classes("text-h6")
@@ -1085,7 +1207,7 @@ async def get_page(request: Request):
                 ui.html(
                     f'<a href="/download/source?token={TOKEN}" '
                     f'style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;'
-                    f'border-radius:4px;background:var(--nt-orange);color:white;'
+                    f'border-radius:4px;background:var(--q-primary);color:white;'
                     f'text-decoration:none;font-weight:500;font-size:14px;">'
                     f'<span class="material-icons" style="font-size:18px">download</span>'
                     f'Download source</a>'
@@ -1098,7 +1220,7 @@ async def get_page(request: Request):
             ).classes("text-body2 text-grey")
 
         with ui.card().classes("w-full q-pa-md"):
-            ui.label("Platforms").classes("nt-section-title text-overline")
+            ui.label("Platforms").classes("nt-section-title text-overline text-primary")
             for platform, icon in [
                 ("macOS (.app bundle)",  "laptop_mac"),
                 ("Linux (AppImage)",     "computer"),
@@ -1112,7 +1234,7 @@ async def get_page(request: Request):
                 ui.separator().props("spaced=false")
 
         with ui.card().classes("w-full q-pa-md"):
-            ui.label("Source code").classes("nt-section-title text-overline")
+            ui.label("Source code").classes("nt-section-title text-overline text-primary")
             with ui.row().classes("items-center justify-between w-full q-py-xs"):
                 with ui.row().classes("items-center").style("gap: 0.5rem"):
                     ui.icon("code").classes("text-grey-5")
@@ -1154,6 +1276,13 @@ async def download_license():
     lic = SCRIPT_DIR / "LICENSE"
     content = lic.read_text() if lic.exists() else "LICENSE file not found."
     return PlainTextResponse(content)
+
+@app.post("/shutdown")
+async def http_shutdown():
+    """Trigger a clean server shutdown (token required via middleware)."""
+    PID_FILE.unlink(missing_ok=True)
+    app.shutdown()
+    return {"status": "shutting down"}
 
 def _resolve_file(folder, filename):
     dir_map = {d.name: d for d in [UPLOAD_DIR, DOWNLOAD_DIR, SHARE_DIR]}
@@ -1247,6 +1376,9 @@ def _llms_body():
         f"download_file(section, filename)\n"
         f"  section: 'upload' | 'download' | 'share'\n"
         f"  Returns: {{filename, content_base64, bytes}}\n\n"
+        f"shutdown_server()\n"
+        f"  Shuts down NiceTransfer cleanly. Use when done.\n"
+        f"  Returns: {{status: 'shutting down'}}\n\n"
 
         f"## Pages\n\n"
         f"  /          — main transfer interface (sections, file lists, control panel)\n"
@@ -1295,14 +1427,23 @@ async def llms_local_txt(request: Request):
         f"  cat {SCRIPT_DIR}/.nicetransfer.pid 2>/dev/null\n\n"
         f"If the file exists, NiceTransfer is already running on that port — use it.\n"
         f"If the file does not exist (or the PID is dead), start normally.\n\n"
+        f"## Stopping NiceTransfer\n\n"
+        f"Preferred — MCP tool (if connected) or HTTP endpoint:\n\n"
+        f"  shutdown_server()   ← MCP tool\n"
+        f"  curl -s -X POST 'http://127.0.0.1:{PORT}/shutdown?token={TOKEN}'\n\n"
+        f"Both trigger a clean NiceGUI lifecycle shutdown (exit 0).\n"
+        f"Ctrl+C in the terminal where run.sh is running also shuts down cleanly.\n\n"
+        f"Last resort — kill the process directly:\n\n"
+        f"  pkill -f nicetransfer.py 2>/dev/null\n\n"
         f"## Restarting NiceTransfer\n\n"
-        f"Wait until the old process is gone before starting a new one:\n\n"
-        f"  pkill -f nicetransfer.py 2>/dev/null\n"
+        f"Stop first, wait until gone, then start:\n\n"
+        f"  curl -s -X POST 'http://127.0.0.1:{PORT}/shutdown?token={TOKEN}'\n"
         f"  while pgrep -f nicetransfer.py > /dev/null 2>&1; do sleep 0.1; done\n"
         f"  bash {SCRIPT_DIR}/run.sh\n\n"
         f"Do not use a fixed sleep — wait for the process to actually exit.\n"
         f"Expected exit codes on the previous background task:\n"
-        f"  143 (SIGTERM) — process was killed by pkill during restart, it is gone\n"
+        f"  0   — clean shutdown (HTTP endpoint, Ctrl+C, or timeout)\n"
+        f"  143 (SIGTERM) — process was killed by pkill, it is gone\n"
         f"  144 (SIGURG)  — task manager timed out, NiceTransfer keeps running (Python ignores SIGURG)\n\n"
     )
     return PlainTextResponse(local_section + _llms_body())
@@ -1386,6 +1527,13 @@ if HAS_MCP:
             "bytes":          len(data),
         }
 
+    @_mcp.tool()
+    def shutdown_server() -> dict:
+        """Shut down the NiceTransfer server cleanly."""
+        PID_FILE.unlink(missing_ok=True)
+        app.shutdown()
+        return {"status": "shutting down"}
+
     # Build the Starlette sub-app (this also initialises _mcp._session_manager).
     _mcp_sub = _mcp.streamable_http_app()
     app.mount("/mcp", _mcp_sub)
@@ -1452,26 +1600,27 @@ if NO_NETWORK:
 
 _start_time     = _time.time()
 _timeout_active = TIMEOUT_MIN   # mutable; 0 = no timeout
-_shutdown_timer = None
 
 def _timeout_shutdown():
     PID_FILE.unlink(missing_ok=True)
     print(f"\n⏱  Timeout reached ({_timeout_active} min) — shutting down.")
-    os.kill(os.getpid(), signal.SIGTERM)
+    app.shutdown()
+    threading.Timer(5, lambda: os._exit(143)).start()
+
+_timeout_fired = False   # prevents double-firing; reset when user sets new timeout
 
 def _start_shutdown_timer():
-    global _shutdown_timer
-    if _shutdown_timer is not None:
-        _shutdown_timer.cancel()
-    if _timeout_active > 0:
-        _shutdown_timer = threading.Timer(_timeout_active * 60, _timeout_shutdown)
-        _shutdown_timer.daemon = True
-        _shutdown_timer.start()
-    else:
-        _shutdown_timer = None
+    global _timeout_fired
+    _timeout_fired = False  # new timeout set — arm the watchdog again
 
-if TIMEOUT_MIN > 0:
-    _start_shutdown_timer()
+def _timeout_watchdog():
+    global _timeout_fired
+    if _timeout_active > 0 and not _timeout_fired:
+        if (_time.time() - _start_time) >= _timeout_active * 60:
+            _timeout_fired = True
+            _timeout_shutdown()
+
+app.on_startup(lambda: app.timer(1, _timeout_watchdog))
 
 def _setup_sigterm_cleanup():
     prev = signal.getsignal(signal.SIGTERM)
@@ -1488,11 +1637,15 @@ app.on_startup(_setup_sigterm_cleanup)
 # ── 18. Update check ──────────────────────────────────────────────────────────
 
 _update_notice: dict = {}   # filled by background check; read by UI
+_update_checked = False     # True once any check has completed
 
-async def _check_updates():
+def _sync_check_updates(force: bool = False):
+    global _update_checked
     import urllib.request, json as _j, importlib.metadata
 
-    if UPDATE_CHECK_ON_START:
+    _update_notice.clear()
+
+    if UPDATE_CHECK_ON_START or force:
         try:
             if UPDATE_CHANNEL == "rolling":
                 url = "https://raw.githubusercontent.com/joko-zauberzeug/nicetransfer/main/nicetransfer.py"
@@ -1517,7 +1670,7 @@ async def _check_updates():
         except Exception:
             pass
 
-    if NOTIFY_DEPS:
+    if NOTIFY_DEPS or force:
         try:
             with urllib.request.urlopen(
                 "https://pypi.org/pypi/nicegui/json", timeout=5
@@ -1531,6 +1684,11 @@ async def _check_updates():
         except Exception:
             pass
 
+    _update_checked = True
+
+async def _check_updates(force: bool = False):
+    await asyncio.to_thread(_sync_check_updates, force)
+
 if UPDATE_CHECK_ON_START or NOTIFY_DEPS:
     app.on_startup(lambda: asyncio.ensure_future(_check_updates()))
 
@@ -1540,5 +1698,8 @@ app.on_startup(lambda: threading.Timer(
 PID_FILE.write_text(f"pid={os.getpid()}\nport={PORT}\n")
 atexit.register(lambda: PID_FILE.unlink(missing_ok=True))
 
-ui.run(host="0.0.0.0", port=PORT, title="NiceTransfer",
-       favicon="📁", dark=True, reload=False, show=False)
+try:
+    ui.run(host="0.0.0.0", port=PORT, title="NiceTransfer",
+           favicon="📁", dark=True, reload=False, show=False)
+except KeyboardInterrupt:
+    pass
