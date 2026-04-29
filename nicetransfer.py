@@ -431,17 +431,17 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
                 <div class="nt-drop-zone row items-center justify-center q-py-xs w-full"
                      style="min-height:40px; gap:12px">
                   <q-btn v-if="props.canAddFiles" flat dense no-caps
-                         color="grey-5" icon="upload" label="Upload files">
+                         class="nt-text-secondary" icon="upload" label="Upload files">
                     <q-uploader-add-trigger />
                   </q-btn>
                   <q-btn v-if="props.canAddFiles" flat dense no-caps
-                         color="grey-5" icon="photo_camera" label="Take photo">
+                         class="nt-text-secondary" icon="photo_camera" label="Take photo">
                     <input type="file" accept="image/*" capture="environment"
                            class="q-uploader__input overflow-hidden absolute-full cursor-pointer"
                            aria-hidden="true" title=""
                            @change="props.addFiles(Array.from($event.target.files)); $event.target.value = ''" />
                   </q-btn>
-                  <div class="row items-center text-body2 text-grey-5" style="gap:4px">
+                  <div class="row items-center text-body2 nt-text-secondary" style="gap:4px">
                     or
                     <q-icon name="upload_file" size="sm" />
                     Drop files here
@@ -488,7 +488,7 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
                     ui.button("Undo", on_click=lambda: do_undo()) \
                         .props("flat dense no-caps size=sm color=primary")
                     ui.button(icon="close", on_click=lambda: dismiss_undo()) \
-                        .props("flat round dense size=xs color=grey-5") \
+                        .props("flat round dense size=xs").classes("nt-text-secondary") \
                         .tooltip("Dismiss")
                 undo_bar.set_visibility(False)
 
@@ -735,7 +735,7 @@ def build_header(is_dark, section_links=None, current="", is_local=False):
                     f'<span style="font-weight:700">Nice</span>'
                     f'<span style="font-weight:400">Transfer</span>'
                     f'</a>')
-            countdown = ui.label().classes("text-grey-5 text-caption").style(
+            countdown = ui.label().classes("nt-text-secondary text-caption").style(
                 "font-family: monospace; line-height: 1; margin-left: 2px"
             ).tooltip("Session timeout")
             def _update_countdown(lbl=countdown):
@@ -752,7 +752,7 @@ def build_header(is_dark, section_links=None, current="", is_local=False):
         menu_refs = {}
 
         if section_links:
-            with ui.tabs().props("dense no-caps").classes("text-grey-7 nt-nav-tabs"):
+            with ui.tabs().props("dense no-caps").classes("nt-text-secondary nt-nav-tabs"):
                 for label, anchor in section_links:
                     t = ui.tab(label).on("click",
                         js_handler=f"() => document.getElementById('{anchor}')?.scrollIntoView({{behavior:'smooth'}})")
@@ -761,7 +761,7 @@ def build_header(is_dark, section_links=None, current="", is_local=False):
         ui.space()
 
         icon = "dark_mode" if is_dark.value is True else ("light_mode" if is_dark.value is False else "brightness_auto")
-        theme_btn = ui.button(icon=icon).props("flat round dense color=grey-7").tooltip("Toggle theme")
+        theme_btn = ui.button(icon=icon).props("flat round dense").classes("nt-text-secondary").tooltip("Toggle theme")
 
         def toggle_theme():
             if is_dark.value is True:
@@ -770,10 +770,11 @@ def build_header(is_dark, section_links=None, current="", is_local=False):
                 is_dark.set_value(False); theme_btn.props("icon=light_mode")
             else:
                 is_dark.set_value(True); theme_btn.props("icon=dark_mode")
+            app.storage.user['theme'] = is_dark.value
 
         theme_btn.on("click", toggle_theme)
 
-        menu_btn = ui.dropdown_button(icon="menu").props("flat round dense color=grey-7 no-caps")
+        menu_btn = ui.dropdown_button(icon="menu").props("flat round dense no-caps").classes("nt-text-secondary")
         with menu_btn:
             with ui.list().props("dense"):
                 if section_links:
@@ -819,7 +820,7 @@ async def index(request: Request):
         f'<meta name="mcp-server-card" content="http://{LOCAL_IP}:{PORT}/.well-known/mcp/server-card.json?token={TOKEN}">\n'
         f'<meta name="llms-txt" content="http://{LOCAL_IP}:{PORT}/llms.txt?token={TOKEN}">'
     )
-    is_dark = ui.dark_mode(value=cfg_theme())
+    is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
 
     # Build header — local gets Connection + Control tabs in addition to file sections
     _section_links = []
@@ -872,11 +873,11 @@ async def index(request: Request):
                                     ui.notify("URL copied", type="positive", timeout=1500)
 
                                 ui.button(icon="content_copy", on_click=do_copy) \
-                                    .props("flat round dense size=xs color=grey-5") \
+                                    .props("flat round dense size=xs").classes("nt-text-secondary") \
                                     .tooltip("Copy URL")
                                 with ui.element("span").classes("nt-share-wrap"):
                                     ui.button(icon="share") \
-                                        .props("flat round dense size=xs color=grey-5") \
+                                        .props("flat round dense size=xs").classes("nt-text-secondary") \
                                         .tooltip("Share") \
                                         .on("click", js_handler=(
                                             f"() => navigator.share({{title:'NiceTransfer',"
@@ -886,7 +887,7 @@ async def index(request: Request):
                                     "document.querySelectorAll('.nt-share-wrap')"
                                     ".forEach(e => { if (!navigator.share) e.style.display='none' })"
                                 )
-                    ui.icon("keyboard_arrow_down").props("size=2rem color=grey-5") \
+                    ui.icon("keyboard_arrow_down").props("size=2rem") \
                         .classes("nt-scroll-hint")
 
                 with ui.card().classes("w-full q-pa-none nt-section").props('id="control"'):
@@ -904,7 +905,7 @@ async def index(request: Request):
                                     _key = key
                                     ui.switch(value=getattr(state, _key),
                                         on_change=lambda e, k=_key: setattr(state, k, e.value))
-                                ui.label(str(path)).classes("text-caption text-grey") \
+                                ui.label(str(path)).classes("text-caption nt-text-secondary") \
                                     .style("word-break:break-all; margin-top:-4px")
                             ui.separator().props("spaced=false")
 
@@ -970,9 +971,9 @@ async def index(request: Request):
                                 ui.button("Upgrade", on_click=open_upgrade_dialog) \
                                     .props("flat dense color=primary size=sm")
                             elif _update_checked:
-                                ui.label("Up to date").classes("text-caption text-grey")
+                                ui.label("Up to date").classes("text-caption nt-text-secondary")
                             else:
-                                ui.label("Not checked").classes("text-caption text-grey")
+                                ui.label("Not checked").classes("text-caption nt-text-secondary")
                             if _update_notice.get("nicegui"):
                                 ng = _update_notice["nicegui"]
                                 ui.label(f"NiceGUI {ng['latest']} available (installed: {ng['local']})") \
@@ -1150,7 +1151,7 @@ async def index(request: Request):
 @ui.page("/manual")
 async def manual_page(request: Request):
     ui.add_head_html(CSS)
-    is_dark = ui.dark_mode(value=cfg_theme())
+    is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
     build_header(is_dark, current="manual")
     md_file = SCRIPT_DIR / "MANUAL.md"
     content = md_file.read_text() if md_file.exists() else "_MANUAL.md not found._"
@@ -1162,7 +1163,7 @@ async def manual_page(request: Request):
 @ui.page("/changelog")
 async def changelog_page(request: Request):
     ui.add_head_html(CSS)
-    is_dark = ui.dark_mode(value=cfg_theme())
+    is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
     build_header(is_dark, current="changelog")
     md_file = SCRIPT_DIR / "CHANGELOG.md"
     if md_file.exists():
@@ -1181,7 +1182,7 @@ async def changelog_page(request: Request):
 
 
 def build_footer():
-    with ui.element("footer").classes("w-full q-px-md q-py-sm text-center text-caption text-grey-5") \
+    with ui.element("footer").classes("w-full q-px-md q-py-sm text-center text-caption nt-text-secondary") \
             .style("border-top: 1px solid rgba(128,128,128,0.15); margin-top: 2rem"):
         ui.html(
             f'NiceTransfer v{VERSION} &nbsp;·&nbsp; '
@@ -1193,17 +1194,17 @@ def build_footer():
 @ui.page("/get")
 async def get_page(request: Request):
     ui.add_head_html(CSS)
-    is_dark = ui.dark_mode(value=cfg_theme())
+    is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
     build_header(is_dark, current="get")
     with ui.column().classes("w-full q-pa-md").style("max-width: 860px; margin: 0 auto; gap: 1rem"):
 
         with ui.card().classes("w-full q-pa-md"):
-            ui.label("Source package").classes("nt-section-title text-overline text-primary")
+            ui.label("Local source package").classes("nt-section-title text-overline text-primary")
             with ui.row().classes("items-center justify-between w-full q-mt-sm"):
                 with ui.column().style("gap: 0.25rem"):
                     ui.label(f"NiceTransfer v{VERSION}").classes("text-h6")
                     ui.label("Requires Python 3.9+ · run install.sh to set up") \
-                        .classes("text-caption text-grey")
+                        .classes("text-caption nt-text-secondary")
                 ui.html(
                     f'<a href="/download/source?token={TOKEN}" '
                     f'style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;'
@@ -1215,9 +1216,27 @@ async def get_page(request: Request):
             ui.separator().classes("q-my-sm")
             ui.label(
                 "The source package contains all files needed to install and run NiceTransfer. "
-                "It works offline — no internet connection required. "
+                "Served directly from this device — no internet required to download. "
                 "Includes nicetransfer.py, install.sh, run.sh, the manual, changelog, and LICENSE."
-            ).classes("text-body2 text-grey")
+            ).classes("text-body2 nt-text-secondary")
+
+        with ui.card().classes("w-full q-pa-md"):
+            ui.label("GitHub").classes("nt-section-title text-overline text-primary")
+            with ui.row().classes("items-center justify-between w-full q-py-xs"):
+                with ui.column().style("gap: 0"):
+                    ui.label("NiceTransfer releases").classes("text-body2")
+                    ui.label("Tagged versions — tested and recommended for stable use") \
+                        .classes("text-caption nt-text-secondary")
+                ui.button("Open", icon="open_in_new") \
+                    .props('href="https://github.com/joko-zauberzeug/nicetransfer/releases" target=_blank flat dense no-caps').classes("nt-text-secondary")
+            ui.separator().props("spaced=false")
+            with ui.row().classes("items-center justify-between w-full q-py-xs"):
+                with ui.column().style("gap: 0"):
+                    ui.label("NiceTransfer main branch").classes("text-body2")
+                    ui.label("Rolling — always the latest code") \
+                        .classes("text-caption nt-text-secondary")
+                ui.button("Open", icon="open_in_new") \
+                    .props('href="https://github.com/joko-zauberzeug/nicetransfer" target=_blank flat dense no-caps').classes("nt-text-secondary")
 
         with ui.card().classes("w-full q-pa-md"):
             ui.label("Platforms").classes("nt-section-title text-overline text-primary")
@@ -1228,25 +1247,19 @@ async def get_page(request: Request):
             ]:
                 with ui.row().classes("items-center justify-between w-full q-py-xs"):
                     with ui.row().classes("items-center").style("gap: 0.5rem"):
-                        ui.icon(icon).classes("text-grey-5")
-                        ui.label(platform)
-                    ui.label("Coming soon. Maybe.").classes("text-caption text-grey-5")
+                        ui.icon(icon).classes("nt-text-disabled")
+                        ui.label(platform).classes("nt-text-disabled")
+                    ui.label("Coming soon. Maybe.").classes("text-caption nt-text-disabled")
                 ui.separator().props("spaced=false")
 
         with ui.card().classes("w-full q-pa-md"):
-            ui.label("Source code").classes("nt-section-title text-overline text-primary")
+            ui.label("License").classes("nt-section-title text-overline text-primary")
             with ui.row().classes("items-center justify-between w-full q-py-xs"):
                 with ui.row().classes("items-center").style("gap: 0.5rem"):
-                    ui.icon("code").classes("text-grey-5")
-                    ui.label("GitHub repository")
-                ui.label("Coming soon").classes("text-caption text-grey-5")
-            ui.separator().props("spaced=false")
-            with ui.row().classes("items-center justify-between w-full q-py-xs"):
-                with ui.row().classes("items-center").style("gap: 0.5rem"):
-                    ui.icon("gavel").classes("text-grey-5")
-                    ui.label("License: GNU Affero General Public License v3.0")
+                    ui.icon("gavel").classes("nt-text-secondary")
+                    ui.label("GNU Affero General Public License v3.0")
                 ui.button("View in new tab", icon="open_in_new") \
-                    .props(f'href="/download/license?token={TOKEN}" target=_blank flat dense color=grey-7 no-caps')
+                    .props(f'href="/download/license?token={TOKEN}" target=_blank flat dense no-caps').classes("nt-text-secondary")
 
     build_footer()
 
@@ -1700,6 +1713,7 @@ atexit.register(lambda: PID_FILE.unlink(missing_ok=True))
 
 try:
     ui.run(host="0.0.0.0", port=PORT, title="NiceTransfer",
-           favicon="📁", dark=True, reload=False, show=False)
+           favicon="📁", dark=True, reload=False, show=False,
+           storage_secret="nicetransfer-storage")
 except KeyboardInterrupt:
     pass

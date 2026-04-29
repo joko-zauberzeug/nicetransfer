@@ -1,5 +1,12 @@
 # Changelog
 
+## /get page, design tokens, theme persistence — Joko, 29. April 2026, 23:37
+
+- **`/get` page restructured** — four cards in new order: Local source package, GitHub, Platforms, License; "Local source package" clarifies the download is served from this device (no internet required); GitHub card has two entries (NiceTransfer releases, NiceTransfer main branch) with explanatory captions
+- **`nt-text-secondary` / `nt-text-disabled`** — two CSS design tokens replacing all scattered `text-grey-X` color classes; adapt to light and dark mode (60% / 35% foreground opacity); one place to tune secondary and disabled text contrast across all pages
+- **All `color=grey-X` props removed** — buttons and icons now use `nt-text-secondary` class; consistent in both themes
+- **Theme persistence** — user's light/dark/auto choice stored in `app.storage.user` and restored on every page navigation; no more reset to config default when switching pages
+
 ## Updates GUI, clean shutdown, color system — Joko, 29. April 2026, 20:47
 
 - **Updates GUI in Control panel** — "Updates" subsection shows installed NiceTransfer and NiceGUI versions; **Check** button queries the configured channel and shows a combined notification ("NiceTransfer v1.2 · NiceGUI 3.11.1 — all up to date", stays until dismissed); if a new version is found, an **Upgrade** button appears and streams `upgrade.sh` output live into a log dialog; auto-refreshes 3 s after page load so the startup check result is visible without clicking
@@ -8,6 +15,8 @@
 - **Color system** — `app.colors(primary='#FF6D00')` replaces the old CSS variable approach; all Quasar `color=primary` props and `text-primary` classes follow it automatically; CSS cleaned up: removed `:root` color-variable block, redundant toggle rule, and all hardcoded `#FF6D00` / `deep-orange` references — one line in Python controls the full brand color
 - **`run.sh`** — `exec` replaces bash shell with Python process; Ctrl+C goes directly to uvicorn; `KeyboardInterrupt` after cleanup wrapped in `try/except` to suppress the cosmetic Python 3.14 asyncio traceback
 - **Manual** — Stopping section rewritten (Ctrl+C primary, curl `/shutdown` for remote, `pkill` last resort); Upgrading section gains GUI-first paragraph; Control panel list updated with Updates entry
+
+→ [e0808d6](https://github.com/joko-zauberzeug/nicetransfer/commit/e0808d6)
 
 ## v1.2 — Upgrade script, update check, NiceGUI 3.11.1 — Joko, 29. April 2026, 14:31
 

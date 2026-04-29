@@ -66,6 +66,12 @@ body, .q-body, .nicegui-content {
   .nt-menu-section { display: none !important; }
 }
 
+/* ── Text emphasis tokens ── */
+.nt-text-secondary { color: rgba(0, 0, 0, 0.60); }
+.nt-text-disabled  { color: rgba(0, 0, 0, 0.35); }
+.body--dark .nt-text-secondary { color: rgba(255, 255, 255, 0.60); }
+.body--dark .nt-text-disabled  { color: rgba(255, 255, 255, 0.35); }
+
 /* ── Empty table message ── */
 .q-table__bottom--nodata {
   color: rgba(128, 128, 128, 0.4) !important;
