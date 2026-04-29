@@ -8,7 +8,7 @@ Start the server, scan the QR code on any device on your network, and transfer f
 
 **Server device** — the computer running nicetransfer:
 1. Run `./run.sh`
-2. Open `http://localhost:7777` — the QR code and control panel appear
+2. Open the local URL shown in the terminal (e.g. `http://127.0.0.1:7777/?token=...`) — the QR code and control panel appear
 
 **Client device** — any phone, tablet, or computer on the same Wi-Fi:
 1. Scan the QR code

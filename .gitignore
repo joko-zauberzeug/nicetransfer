@@ -22,5 +22,9 @@ data/share/*
 !data/download/.gitkeep
 !data/share/.gitkeep
 
+# Internal planning docs — kept locally, not published
+MCP.md
+PLATFORMS.md
+
 # macOS
 .DS_Store
