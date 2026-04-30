@@ -47,7 +47,7 @@ check_deps()
 
 # ── 2. Imports ────────────────────────────────────────────────────────────────
 
-from nicegui import ui, app, events
+from nicegui import ui, app, events, background_tasks
 from starlette.requests import Request
 from starlette.responses import FileResponse, Response, HTMLResponse, JSONResponse, PlainTextResponse
 
@@ -451,9 +451,11 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
             uploader.add_slot("list", "")
 
         # ── Image preview dialog ──────────────────────────────────────────────
-        with ui.dialog() as img_dialog, ui.card().style(
-                "background:#2a2a2a; padding:0; max-width:95vw; position:relative; overflow:hidden; box-shadow:none"):
-            preview_html = ui.html("").style("display:block")
+        with ui.dialog() as img_dialog, ui.card() \
+                .props("dark") \
+                .classes("p-0 relative overflow-hidden shadow-none") \
+                .style("max-width:95vw"):
+            preview_html = ui.html("").classes("block")
             ui.button("✕", on_click=img_dialog.close) \
                 .props("flat color=white round dense size=sm") \
                 .classes("absolute-top-right q-ma-xs")
@@ -477,7 +479,7 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
             img_dialog.open()
 
         # ── Search + Table ────────────────────────────────────────────────────
-        with ui.column().classes("w-full q-pa-sm").style("gap:0.5rem"):
+        with ui.column().classes("w-full q-pa-sm gap-2"):
             search = ui.input(placeholder="Search...").props("dense outlined clearable").classes("w-full")
 
             if with_delete:
@@ -585,7 +587,7 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
                                 await asyncio.sleep(10)
                                 dismiss_undo()
 
-                            _undo["task"] = asyncio.create_task(auto_dismiss())
+                            _undo["task"] = background_tasks.create(auto_dismiss(), name='undo-auto-dismiss')
                             undo_label.set_text(f"{count} file(s) moved to trash")
                             undo_bar.set_visibility(True)
                             table.selected.clear()
@@ -644,7 +646,7 @@ def build_trash_section(can_restore: bool = True, can_empty: bool = True):
         with ui.row().classes("nt-section-header items-center justify-center w-full q-py-sm"):
             ui.label("Trash").classes("nt-section-title text-h5 text-primary")
 
-        with ui.column().classes("w-full q-pa-sm").style("gap:0.5rem"):
+        with ui.column().classes("w-full q-pa-sm gap-2"):
             search = ui.input(placeholder="Search...").props("dense outlined clearable").classes("w-full")
 
             table = ui.table(columns=columns, rows=_make_rows(), row_key="name") \
@@ -786,6 +788,9 @@ def build_header(is_dark, section_links=None, current="", is_local=False):
                 ui.item("Manual",    on_click=lambda: ui.navigate.to(f"/manual?token={TOKEN}"))
                 ui.item("Changelog", on_click=lambda: ui.navigate.to(f"/changelog?token={TOKEN}"))
                 ui.item("Get",       on_click=lambda: ui.navigate.to(f"/get?token={TOKEN}"))
+                if is_local:
+                    ui.separator()
+                    ui.item("Development", on_click=lambda: ui.navigate.to(f"/development?token={TOKEN}"))
 
         if section_links:
             # None = always visible; str = state attribute to check
@@ -851,7 +856,7 @@ async def index(request: Request):
                 with ui.element("div").classes("nt-hero nt-section w-full").props('id="connection"'):
                     with ui.element("div").classes("nt-hero-content"):
                         if no_net:
-                            ui.icon("wifi_off").props("size=4rem color=primary").style("opacity: 0.6")
+                            ui.icon("wifi_off").props("size=4rem color=primary").classes("opacity-60")
                             ui.label("No network detected").classes("text-h5")
                             ui.label("Other devices cannot connect") \
                                 .classes("text-body2 text-grey q-mb-sm")
@@ -868,8 +873,7 @@ async def index(request: Request):
                                 ui.label(url).classes("nt-url")
 
                                 async def do_copy(u=url):
-                                    await ui.run_javascript(
-                                        f"navigator.clipboard.writeText({_json.dumps(u)})")
+                                    await ui.clipboard.write(u)
                                     ui.notify("URL copied", type="positive", timeout=1500)
 
                                 ui.button(icon="content_copy", on_click=do_copy) \
@@ -893,20 +897,19 @@ async def index(request: Request):
                 with ui.card().classes("w-full q-pa-none nt-section").props('id="control"'):
                     with ui.row().classes("nt-section-header items-center justify-center w-full q-py-sm"):
                         ui.label("Control").classes("nt-section-title text-h5 text-primary")
-                    with ui.column().classes("w-full q-pa-sm").style("gap:0"):
+                    with ui.column().classes("w-full q-pa-sm gap-0"):
                         for label, key, path in [
                             ("Share",         "share_enabled",    SHARE_DIR),
                             ("Upload only",   "upload_enabled",   UPLOAD_DIR),
                             ("Download only", "download_enabled", DOWNLOAD_DIR),
                         ]:
-                            with ui.column().classes("w-full q-py-xs").style("gap:0"):
+                            with ui.column().classes("w-full q-py-xs gap-0"):
                                 with ui.row().classes("items-center justify-between w-full"):
                                     ui.label(label)
                                     _key = key
                                     ui.switch(value=getattr(state, _key),
                                         on_change=lambda e, k=_key: setattr(state, k, e.value))
-                                ui.label(str(path)).classes("text-caption nt-text-secondary") \
-                                    .style("word-break:break-all; margin-top:-4px")
+                                ui.label(str(path)).classes("text-caption nt-text-secondary break-all -mt-1")
                             ui.separator().props("spaced=false")
 
                         ui.label("Client permissions").classes("text-overline q-mt-sm text-primary")
@@ -922,7 +925,7 @@ async def index(request: Request):
                             indent = key == "client_trash_restore"
                             row = ui.row().classes("items-center justify-between w-full q-py-xs")
                             if indent:
-                                row.style("padding-left: 1.25rem")
+                                row.classes("pl-5")
                             with row:
                                 lbl = ui.label(label)
                                 _key = key
@@ -947,9 +950,9 @@ async def index(request: Request):
                         ui.separator()
                         with ui.row().classes("items-center justify-between w-full q-py-xs"):
                             ui.label("Timeout (minutes, 0 = off)")
-                            with ui.row().classes("items-center").style("gap: 8px"):
+                            with ui.row().classes("items-center gap-2"):
                                 timeout_input = ui.number(value=_timeout_active, min=0, step=1, precision=0) \
-                                    .props("dense outlined").style("width: 80px")
+                                    .props("dense outlined").classes("w-20")
                                 def apply_timeout():
                                     global _start_time, _timeout_active
                                     _timeout_active = max(0, int(timeout_input.value or 0))
@@ -1067,7 +1070,7 @@ async def index(request: Request):
                             dlg.open()
 
                         with ui.row().classes("items-center justify-between w-full q-py-xs"):
-                            with ui.column().style("gap: 2px"):
+                            with ui.column().classes("gap-0.5"):
                                 import importlib.metadata as _im
                                 _ng_ver = _im.version("nicegui")
                                 ui.label(f"NiceTransfer v{VERSION} and NiceGUI {_ng_ver}") \
@@ -1152,7 +1155,7 @@ async def index(request: Request):
 async def manual_page(request: Request):
     ui.add_head_html(CSS)
     is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
-    build_header(is_dark, current="manual")
+    build_header(is_dark, current="manual", is_local=is_local(request))
     md_file = SCRIPT_DIR / "MANUAL.md"
     content = md_file.read_text() if md_file.exists() else "_MANUAL.md not found._"
     with ui.column().classes("w-full q-pa-md").style("max-width: 860px; margin: 0 auto"):
@@ -1164,7 +1167,7 @@ async def manual_page(request: Request):
 async def changelog_page(request: Request):
     ui.add_head_html(CSS)
     is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
-    build_header(is_dark, current="changelog")
+    build_header(is_dark, current="changelog", is_local=is_local(request))
     md_file = SCRIPT_DIR / "CHANGELOG.md"
     if md_file.exists():
         parts = md_file.read_text().split("\n## ")
@@ -1175,15 +1178,33 @@ async def changelog_page(request: Request):
         if entries:
             for entry in entries:
                 with ui.card().classes("w-full"):
-                    ui.markdown(entry)
+                    ui.markdown(entry).classes("nt-changelog-entry")
         else:
             ui.markdown("_CHANGELOG.md not found._")
     build_footer()
 
 
+@ui.page("/development")
+async def development_page(request: Request):
+    if not is_local(request):
+        ui.navigate.to(f"/?token={TOKEN}")
+        return
+    ui.add_head_html(CSS)
+    is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
+    build_header(is_dark, current="development", is_local=is_local(request))
+    md_file = SCRIPT_DIR / "DEVELOPMENT.md"
+    with ui.column().classes("w-full q-pa-md").style("max-width: 860px; margin: 0 auto"):
+        with ui.card().classes("w-full q-pa-md"):
+            if md_file.exists():
+                ui.markdown(md_file.read_text())
+            else:
+                ui.markdown("_DEVELOPMENT.md not found._")
+    build_footer()
+
+
 def build_footer():
-    with ui.element("footer").classes("w-full q-px-md q-py-sm text-center text-caption nt-text-secondary") \
-            .style("border-top: 1px solid rgba(128,128,128,0.15); margin-top: 2rem"):
+    ui.separator()
+    with ui.element("footer").classes("w-full q-px-md q-py-sm text-center text-caption nt-text-secondary q-mt-sm"):
         ui.html(
             f'NiceTransfer v{VERSION} &nbsp;·&nbsp; '
             f'© 2026 Joko Keuschnig &nbsp;·&nbsp; '
@@ -1195,24 +1216,18 @@ def build_footer():
 async def get_page(request: Request):
     ui.add_head_html(CSS)
     is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
-    build_header(is_dark, current="get")
+    build_header(is_dark, current="get", is_local=is_local(request))
     with ui.column().classes("w-full q-pa-md").style("max-width: 860px; margin: 0 auto; gap: 1rem"):
 
         with ui.card().classes("w-full q-pa-md"):
             ui.label("Local source package").classes("nt-section-title text-overline text-primary")
             with ui.row().classes("items-center justify-between w-full q-mt-sm"):
-                with ui.column().style("gap: 0.25rem"):
+                with ui.column().classes("gap-1"):
                     ui.label(f"NiceTransfer v{VERSION}").classes("text-h6")
                     ui.label("Requires Python 3.9+ · run install.sh to set up") \
                         .classes("text-caption nt-text-secondary")
-                ui.html(
-                    f'<a href="/download/source?token={TOKEN}" '
-                    f'style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;'
-                    f'border-radius:4px;background:var(--q-primary);color:white;'
-                    f'text-decoration:none;font-weight:500;font-size:14px;">'
-                    f'<span class="material-icons" style="font-size:18px">download</span>'
-                    f'Download source</a>'
-                )
+                ui.button('Download source', icon='download') \
+                    .props(f'href="/download/source?token={TOKEN}" tag=a unelevated color=primary')
             ui.separator().classes("q-my-sm")
             ui.label(
                 "The source package contains all files needed to install and run NiceTransfer. "
@@ -1703,7 +1718,7 @@ async def _check_updates(force: bool = False):
     await asyncio.to_thread(_sync_check_updates, force)
 
 if UPDATE_CHECK_ON_START or NOTIFY_DEPS:
-    app.on_startup(lambda: asyncio.ensure_future(_check_updates()))
+    app.on_startup(lambda: background_tasks.create(_check_updates()))
 
 app.on_startup(lambda: threading.Timer(
     1.5, lambda: webbrowser.open(f"http://localhost:{PORT}/?token={TOKEN}")).start())

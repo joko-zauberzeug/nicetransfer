@@ -150,6 +150,14 @@ body, .q-body, .nicegui-content {
   background: color-mix(in srgb, var(--q-primary) 6%, transparent);
 }
 
+/* ── Changelog: compact heading ── */
+.nt-changelog-entry h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
 /* ── Markdown: constrain flex-item width, scroll code/tables ── */
 .nicegui-markdown { overflow-wrap: break-word; word-break: break-word; min-width: 0; width: 100%; }
 .nicegui-markdown .codehilite pre { overflow-x: scroll; word-break: normal; }

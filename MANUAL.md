@@ -147,6 +147,8 @@ channel        = "stable" # "stable" (latest release) or "rolling" (main branch)
 
 Open the local URL shown in the banner (e.g. `http://127.0.0.1:7777/?token=...`) on the server device. The page opens with a full-screen hero showing the QR code. Scroll down to reach the control panel and file sections.
 
+The menu (top right) gives access to **Manual**, **Changelog**, **Get** (source download), and — on the server device — **Development** (architecture overview and project notes for developers).
+
 **Connection** — QR code and network URL; scan with any device on the same Wi-Fi to connect.
 
 **Control** — runtime settings:
@@ -229,7 +231,7 @@ Two additional endpoints are available (both token-protected):
 | `/.well-known/mcp/server-card.json` | Machine-readable capability description (JSON) |
 | `/llms.txt` | Plain-text description of tools and API for AI assistants |
 
-The MCP endpoint (`/mcp`) is not yet implemented — the discovery layer is in place for when it is.
+The MCP endpoint (`/mcp`) implements the full [Model Context Protocol](https://modelcontextprotocol.io) over Streamable HTTP. Tools available: `get_status`, `list_files`, `upload_file`, `download_file`, `shutdown_server`. See `/llms.txt` for the complete tool reference.
 
 ---
 

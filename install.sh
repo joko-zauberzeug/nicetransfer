@@ -45,13 +45,14 @@ echo "→ installing qrcode ..."
 echo "✓ dependencies installed"
 
 # Generate run.sh
-cat > "$SCRIPT_DIR/run.sh" << EOF
+cat > "$SCRIPT_DIR/run.sh" << 'EOF'
 #!/usr/bin/env bash
 # nicetransfer — start script
 # Usage: ./run.sh [--no-upload] [--no-download] [--port 8888]
 
-source "$VENV_DIR/bin/activate"
-python3 "$SCRIPT_DIR/nicetransfer.py" "\$@"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/.venv/bin/activate"
+exec python3 "$SCRIPT_DIR/nicetransfer.py" "$@"
 EOF
 
 chmod +x "$SCRIPT_DIR/run.sh"

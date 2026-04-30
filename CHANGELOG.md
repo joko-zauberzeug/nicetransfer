@@ -1,5 +1,16 @@
 # Changelog
 
+## AI guides, development page, NiceGUI best practices — joko-zauberzeug, 30. April 2026, 22:52
+
+- **`llms.md`** — NiceGUI reference for AI assistants; covers mental models, the Python-first golden rule, anti-patterns, element reference, and coding standards
+- **`llms-nicetransfer.md`** — NiceTransfer-specific AI guide; architecture constraints, coding conventions, commit workflow, versioning — terse and instructional, written for language models
+- **`CLAUDE.md`** — thin pointer that loads both guides for Claude Code sessions
+- **`DEVELOPMENT.md` + `/development` page** — human-readable development overview in the browser; architecture, design concepts, AI integration layer, project file inventory; server-only menu entry
+- **NiceGUI best practices** — replaced `asyncio.ensure_future` and `asyncio.create_task` with `background_tasks.create()`; replaced `ui.run_javascript("navigator.clipboard...")` with `await ui.clipboard.write()`; replaced `ui.html('<a href=...')` with `ui.button().props('tag=a href=...')`; cleaned up `.style()` calls where Tailwind/Quasar classes suffice; `.props("dark")` on cards instead of hardcoded backgrounds
+- **`run.sh` / `install.sh` portability** — removed hardcoded absolute paths; `run.sh` now uses `${BASH_SOURCE[0]}` to find its own directory; `install.sh` heredoc uses single-quoted `'EOF'` so the generated `run.sh` resolves paths at runtime
+- **Changelog heading style** — `h2` inside `.nt-changelog-entry` rendered at body size instead of page-heading size; less visual noise in the changelog view
+- **MANUAL.md** — corrected MCP description (was incorrectly marked as not yet implemented); added menu overview paragraph in Control panel section
+
 ## /get page, design tokens, theme persistence — Joko, 29. April 2026, 23:37
 
 - **`/get` page restructured** — four cards in new order: Local source package, GitHub, Platforms, License; "Local source package" clarifies the download is served from this device (no internet required); GitHub card has two entries (NiceTransfer releases, NiceTransfer main branch) with explanatory captions
@@ -7,7 +18,7 @@
 - **All `color=grey-X` props removed** — buttons and icons now use `nt-text-secondary` class; consistent in both themes
 - **Theme persistence** — user's light/dark/auto choice stored in `app.storage.user` and restored on every page navigation; no more reset to config default when switching pages
 
-→ [83b09ce](https://github.com/joko-zauberzeug/nicetransfer/commit/83b09ce)
+→ [1b74502](https://github.com/joko-zauberzeug/nicetransfer/commit/1b7450202964a971755901226f53f77f9037bb6f)
 
 ## Updates GUI, clean shutdown, color system — Joko, 29. April 2026, 20:47
 
