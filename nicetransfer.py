@@ -139,9 +139,10 @@ if _cfg_port == 0:
         sys.exit(1)
 else:
     PORT = _cfg_port
-TOKEN       = ARGS.token or cfg_str("server", "token", "") or secrets.token_urlsafe(12)
+_cfg_token  = cfg_str("server", "token", "auto")
+TOKEN       = ARGS.token or (secrets.token_urlsafe(12) if _cfg_token in ("", "auto") else _cfg_token)
 TIMEOUT_MIN          = cfg_int("server",  "timeout",        0)   # 0 = no timeout
-VERSION              = "1.2"
+VERSION              = "1.3"
 UPDATE_CHECK_ON_START = cfg_bool("updates", "check_on_start", False)
 NOTIFY_DEPS          = cfg_bool("updates", "notify_deps",     False)
 UPDATE_CHANNEL       = cfg_str("updates",  "channel",         "stable")
@@ -177,6 +178,7 @@ class AppState:
         self.client_delete_share    = cfg_bool("permissions", "client_delete_share",    True)
         self.client_trash_visible   = cfg_bool("permissions", "client_trash_visible",   False)
         self.client_trash_restore   = cfg_bool("permissions", "client_trash_restore",   False)
+        self.client_shutdown        = cfg_bool("permissions", "client_shutdown",         False)
 
 state = AppState()
 
@@ -807,6 +809,21 @@ def build_header(is_dark, section_links=None, current="", is_local=False):
                     ui.separator()
                     ui.item("Development", on_click=lambda: ui.navigate.to(f"/development?token={TOKEN}"))
 
+                with ui.dialog() as confirm_dialog:
+                    with ui.card().classes("q-pa-md"):
+                        ui.label("Shut down NiceTransfer?").classes("text-body1 q-mb-sm")
+                        with ui.row().classes("gap-2 justify-end w-full"):
+                            ui.button("Cancel", on_click=confirm_dialog.close).props("flat")
+                            async def do_shutdown():
+                                PID_FILE.unlink(missing_ok=True)
+                                app.shutdown()
+                            ui.button("Shut down", on_click=do_shutdown).props("color=negative unelevated")
+
+                ui.separator()
+                shutdown_item = ui.item("Shut down", on_click=confirm_dialog.open)
+                if not is_local:
+                    shutdown_item.bind_visibility_from(state, "client_shutdown")
+
         if section_links:
             # None = always visible; str = state attribute to check
             anchor_to_key = {
@@ -936,6 +953,7 @@ async def index(request: Request):
                             ("Client can delete — Download only", "client_delete_download"),
                             ("Clients see Trash",                 "client_trash_visible"),
                             ("Clients can restore from Trash",    "client_trash_restore"),
+                            ("Clients can shut down server",      "client_shutdown"),
                         ]:
                             indent = key == "client_trash_restore"
                             row = ui.row().classes("items-center justify-between w-full q-py-xs")
@@ -1323,8 +1341,10 @@ async def download_license():
     return PlainTextResponse(content)
 
 @app.post("/shutdown")
-async def http_shutdown():
+async def http_shutdown(request: Request):
     """Trigger a clean server shutdown (token required via middleware)."""
+    if not is_local(request) and not state.client_shutdown:
+        return Response(status_code=403)
     PID_FILE.unlink(missing_ok=True)
     app.shutdown()
     return {"status": "shutting down"}
@@ -1437,7 +1457,8 @@ def _llms_body():
         f"  /download/license — plain text LICENSE\n\n"
 
         f"## Notes\n\n"
-        f"- The token regenerates on each server start unless a fixed token is set in config.toml.\n"
+        f"- The token regenerates on each server start unless a fixed token is set in config.toml (token = \"auto\" is the default).\n"
+        f"- The port is assigned dynamically by default (from a configured range). Always read the current port from the PID file or startup banner.\n"
         f"- Always fetch this file fresh ({llms_url}) to get the current MCP URL.\n"
         f"- Files in 'upload' are meant to be sent to the server; 'download' to be fetched from it.\n"
         f"- 'share' is bidirectional.\n"

@@ -63,9 +63,10 @@ CONFIG_FILE="$SCRIPT_DIR/config.toml"
 if [ ! -f "$CONFIG_FILE" ]; then
     cat > "$CONFIG_FILE" << EOF
 # nicetransfer configuration
-# Paths: absolute or with ~/ (will be expanded)
 
 [dirs]
+# Use absolute paths — relative paths resolve from the working directory, not the project folder.
+# Any path set here is accessible to anyone with the token. See Manual for details.
 upload   = "$DATA_DIR/upload"
 download = "$DATA_DIR/download"
 share    = "$DATA_DIR/share"
@@ -74,8 +75,8 @@ share    = "$DATA_DIR/share"
 # port: 0 = auto-assign from port_range (default); set a fixed value e.g. 7777 for stable bookmarks
 port       = 0
 port_range = [7700, 7799]
-# token: leave empty = randomly generated on each start; set own value = fixed
-token   = ""
+# token: "auto" = randomly generated on each start; set own value = fixed
+token   = "auto"
 # timeout in minutes; 0 = run indefinitely
 timeout = 60
 
@@ -95,6 +96,7 @@ client_delete_share    = true
 # Whether clients can see the Trash section and restore files from it
 client_trash_visible   = false
 client_trash_restore   = false
+client_shutdown        = false  # clients may shut down the server remotely
 
 [updates]
 # check for new NiceTransfer version on each startup (prints to terminal + UI notification)

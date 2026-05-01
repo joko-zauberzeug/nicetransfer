@@ -6,27 +6,89 @@ NiceTransfer turns any computer into a local file transfer hub. Start it on one 
 
 NiceTransfer is built on [NiceGUI](https://nicegui.io), a Python UI framework by [Zauberzeug GmbH](https://zauberzeug.com).
 
+This manual is organized by audience: client usage first — for anyone connecting to a running NiceTransfer — followed by server setup for whoever runs the instance.
+
 ## Features
 
-- Three file sections: **Share** (bidirectional), **Upload only**, **Download only**
-- **Trash** section — deleted files are moved to trash, not permanently removed; restore or delete forever per selection
-- Toggle sections on and off at runtime without restarting
-- Select multiple files and download them as a ZIP archive
-- Delete selected files — moves them to Trash; server always has this capability, clients only when permitted
-- **Undo last delete** — an undo bar appears after each delete batch with a 10-second window to reverse it; per-section, per-client, works regardless of Trash visibility
-- **Camera capture** — "Take photo" button in upload sections opens the camera directly on mobile; image picker on desktop
-- File list updates live across all connected devices — no manual refresh needed
-- Token-protected access via QR code
-- Image preview for JPG, PNG, GIF, WebP, SVG
-- Auto / Light / Dark theme
-- Detects missing network and shows hotspot setup instructions (macOS, Linux, Windows)
-- Live network monitoring — notifies when IP changes or connection drops
+NiceTransfer is designed for quick, local file exchange — no accounts, no cloud, nothing to install on the receiving end. Features are grouped by who benefits most: general properties of the tool, what clients experience when they connect, and what operators configure and control.
+
+### General
+
+- **Local & offline** — runs on your network, no cloud, no accounts, no internet required
+- **No client install** — any device with a browser connects instantly
+- **Multiple clients** — several devices can connect and transfer simultaneously
+- **Open source** — AGPL v3
+
+### For clients
+
+- **QR code connect** — scan the code shown on the server to open the transfer interface
+- **Sections** — Share (bidirectional), Upload only, Download only; which appear depends on configuration
+- **Trash** — deleted files moved to trash, not permanently removed; restore or delete forever *(visible to clients if permitted)*
+- **Undo delete** — undo bar after each delete batch with a 10-second window to reverse it
+- **ZIP download** — select multiple files and download them as a single archive
+- **Camera capture** — opens the camera directly on mobile; image picker on desktop *(in upload sections)*
+- **Image preview** — inline preview for JPG, PNG, GIF, WebP, SVG
+- **Live file list** — updates across all connected devices instantly, no refresh needed
+- **Theme** — Auto / Light / Dark, follows OS or set manually
+
+### For operators
+
+- **Section control** — toggle Upload, Download, Share on and off at runtime without restarting
+- **Client permissions** — configure per section whether clients may delete files or access Trash
+- **Token protection** — access requires a token; regenerates on each start unless fixed in config
+- **Session timeout** — configurable auto-shutdown with countdown in the header
+- **Updates** — built-in update check and one-click upgrade from the browser
+- **Network monitoring** — detects missing network; notifies on IP change or reconnect; hotspot setup instructions for macOS, Linux, Windows
+- **Get** — download the source package directly from the running server; no internet or GitHub needed for distribution
+- **Changelog** — version history accessible in the browser
+- **Development** — architecture overview and project notes, visible on the server device only
+- **AI integration** — MCP server built in; AI assistants can discover and use NiceTransfer via standard protocol
+
+---
+
+## Client usage
+
+The client is any device that connects to NiceTransfer — phone, tablet, or another computer. Just a browser and a QR scanner — no account, no extra apps.
+
+1. Make sure the device is on the same Wi-Fi network as the server
+2. Scan the QR code shown in the server's browser
+3. The browser opens with the transfer interface
+4. Upload, download, or share files
+
+To connect manually: open the network URL shown on the server (e.g. `http://192.168.x.x:<port>/?token=...`) in any browser.
+
+---
+
+## Sections
+
+Each section controls which operations are available.
+
+| Section | Upload | Download | Delete |
+|---------|--------|----------|--------|
+| **Share** | ✓ | ✓ | server always; clients if permitted |
+| **Upload only** | ✓ | — | server always; clients if permitted |
+| **Download only** | — | ✓ | server always; clients if permitted |
+| **Trash** | — | — | restore or delete forever |
+
+Sections can be enabled or disabled at runtime via the control panel without restarting the server. Deleted files are always moved to Trash first — nothing is removed immediately.
+
+---
+
+## Working with files
+
+- **Sortable file list** — click column headers to sort by name, size, or date
+- **Multi-file selection** — checkboxes in the file list; top checkbox selects or deselects all
+- **ZIP download** — select files and click the download icon in the table header
+- **Per-file download** — click the download icon next to any file
+- **Delete** — select files and click the trash icon to move them to Trash
+- **Undo** — an undo bar appears immediately after deletion; click **Undo** within 10 seconds to restore the batch, or ✕ to dismiss early
+- **Image preview** — click the image icon next to image files to preview in the browser
 
 ---
 
 ## Server setup
 
-The server is the computer running NiceTransfer.
+The server is the computer running NiceTransfer. Run it on a local, trusted network only — NiceTransfer uses HTTP (not HTTPS) and the token mechanism is not designed for internet exposure.
 
 ### Requirements
 
@@ -62,7 +124,7 @@ share    = "/path/to/share-folder"
 [server]
 port       = 0              # 0 = auto-assign from port_range; e.g. 7777 for a fixed port
 port_range = [7700, 7799]  # range used when port = 0
-token      = ""            # empty = randomly generated on each start
+token      = "auto"        # auto = randomly generated on each start; set own value = fixed
 timeout    = 60            # minutes until auto-shutdown; 0 = run indefinitely
 
 [ui]
@@ -77,9 +139,12 @@ client_delete_download = false  # clients may delete files in Download only
 client_delete_share    = true   # clients may delete files in Share
 client_trash_visible   = false  # clients can see the Trash section
 client_trash_restore   = false  # clients can restore files from Trash
+client_shutdown        = false  # clients may shut down the server remotely
 ```
 
-By default, clients can delete in Upload and Share sections; Download deletion and Trash access remain restricted. The server device always has full delete and trash access regardless of these settings.
+By default, clients can delete in Upload and Share sections; Download deletion, Trash access, and remote shutdown remain restricted. The server device always has full access regardless of these settings.
+
+**Directory paths** — use absolute paths (e.g. `/Users/alice/transfers`). Relative paths are resolved from the working directory where `./run.sh` is called, not from the project folder — this can lead to unexpected locations if you start NiceTransfer from a different directory. Paths support `~/` expansion. Any directory configured here is fully accessible to anyone who has the token, so only point to folders you intend to share.
 
 To customize colors and other visual details, edit `nicetransfer.css`.
 
@@ -102,7 +167,7 @@ The default sections and theme are read from `config.toml`. Command-line flags a
 To stop remotely (e.g. from a script or AI client):
 
 ```bash
-curl -s -X POST "http://127.0.0.1:7777/shutdown?token=<token>"
+curl -s -X POST "http://127.0.0.1:<port>/shutdown?token=<token>"
 ```
 
 The token is shown in the startup banner. As a last resort:
@@ -146,7 +211,7 @@ channel        = "stable" # "stable" (latest release) or "rolling" (main branch)
 
 ### Control panel
 
-Open the local URL shown in the banner (e.g. `http://127.0.0.1:7777/?token=...`) on the server device. The page opens with a full-screen hero showing the QR code. Scroll down to reach the control panel and file sections.
+Open the local URL shown in the banner (e.g. `http://127.0.0.1:<port>/?token=...`) on the server device. The page opens with a full-screen hero showing the QR code. Scroll down to reach the control panel and file sections.
 
 The menu (top right) gives access to **Manual**, **Changelog**, **Get** (source download), and — on the server device — **Development** (architecture overview and project notes for developers).
 
@@ -155,16 +220,9 @@ The menu (top right) gives access to **Manual**, **Changelog**, **Get** (source 
 **Control** — runtime settings:
 
 - **Section toggles** — enable/disable Upload, Download, Share at runtime
-- **Client permissions** — grant clients the ability to delete files per section, see Trash, or restore from Trash
+- **Client permissions** — grant clients the ability to delete files per section, see Trash, restore from Trash, or shut down the server
 - **Session timeout** — set a timeout in minutes and click **Set** to start or restart the countdown; set to 0 to disable; a countdown appears under the logo in the header when a timeout is active
 - **Updates** — shows installed versions of NiceTransfer and NiceGUI; click **Check** to check for updates; if an update is available, click **Upgrade** to apply it and restart automatically
-- **Sortable file list** — click column headers to sort
-- **Multi-file selection** — checkboxes in the file list; top checkbox selects all
-- **ZIP download** — select files and click the download icon in the table header
-- **Delete** — select files and click the trash icon to move them to Trash
-- **Undo** — an undo bar appears immediately after deletion; click **Undo** within 10 seconds to restore the batch, or ✕ to dismiss early
-- **Image preview** — click the image icon next to image files to preview in the browser
-- **Per-file download** — click the download icon next to any file
 - **Theme toggle** — Auto / Light / Dark
 
 **Trash** — shows all deleted files with their original name and source section:
@@ -172,34 +230,6 @@ The menu (top right) gives access to **Manual**, **Changelog**, **Get** (source 
 - Select files and click **Restore** (↩) to move them back to their original section
 - Select files and click **Delete forever** (🗑) to remove them permanently
 - Files in Trash do not count toward section file lists
-
----
-
-## Client usage
-
-The client is any device that connects to NiceTransfer — phone, tablet, or another computer. No installation required.
-
-1. Make sure the device is on the same Wi-Fi network as the server
-2. Scan the QR code shown in the server's browser
-3. The browser opens with the transfer interface
-4. Upload, download, or share files
-
-To connect manually: open the network URL shown on the server (e.g. `http://192.168.x.x:7777/?token=...`) in any browser.
-
----
-
-## Sections
-
-Each section controls which operations are available.
-
-| Section | Upload | Download | Delete |
-|---------|--------|----------|--------|
-| **Share** | ✓ | ✓ | server always; clients if permitted |
-| **Upload only** | ✓ | — | server always; clients if permitted |
-| **Download only** | — | ✓ | server always; clients if permitted |
-| **Trash** | — | — | restore or delete forever |
-
-Sections can be enabled or disabled at runtime via the control panel without restarting the server. Deleted files are always moved to Trash first — nothing is removed immediately.
 
 ---
 
@@ -220,9 +250,9 @@ While running, the network is checked every 5 seconds. A notification appears in
 NiceTransfer embeds AI discovery hints in every page. When an AI app (e.g. Claude) scans the QR code and fetches the URL, it finds the following in the HTML `<head>`:
 
 ```html
-<meta name="mcp-server"      content="http://192.168.x.x:7777/mcp?token=...">
-<meta name="mcp-server-card" content="http://192.168.x.x:7777/.well-known/mcp/server-card.json?token=...">
-<meta name="llms-txt"        content="http://192.168.x.x:7777/llms.txt?token=...">
+<meta name="mcp-server"      content="http://192.168.x.x:<port>/mcp?token=...">
+<meta name="mcp-server-card" content="http://192.168.x.x:<port>/.well-known/mcp/server-card.json?token=...">
+<meta name="llms-txt"        content="http://192.168.x.x:<port>/llms.txt?token=...">
 ```
 
 Two additional endpoints are available (both token-protected):
