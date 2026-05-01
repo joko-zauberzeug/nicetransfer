@@ -142,7 +142,7 @@ else:
 _cfg_token  = cfg_str("server", "token", "auto")
 TOKEN       = ARGS.token or (secrets.token_urlsafe(12) if _cfg_token in ("", "auto") else _cfg_token)
 TIMEOUT_MIN          = cfg_int("server",  "timeout",        0)   # 0 = no timeout
-VERSION              = "1.3"
+VERSION              = "1.4"
 UPDATE_CHECK_ON_START = cfg_bool("updates", "check_on_start", False)
 NOTIFY_DEPS          = cfg_bool("updates", "notify_deps",     False)
 UPDATE_CHANNEL       = cfg_str("updates",  "channel",         "stable")
@@ -404,7 +404,7 @@ def make_rows(entries, with_download):
             "time":        e["time"],
             "is_img":      e["is_img"],
             "dl_url":      f"/download/{e['dir']}/{e['name']}?token={TOKEN}" if with_download else "",
-            "preview_url": f"/preview/{e['dir']}/{e['name']}"  if e["is_img"]   else "",
+            "preview_url": f"/preview/{e['dir']}/{e['name']}"  if (e["is_img"] and with_download) else "",
         })
     return rows
 
@@ -620,7 +620,7 @@ def build_file_section(title: str, directory: Path, with_upload: bool, with_down
                            tag="a" :href="props.row.dl_url" @click.stop>
                         <q-tooltip anchor="bottom middle" self="top middle">Download</q-tooltip>
                     </q-btn>
-                    <q-btn v-if="props.row.is_img" flat dense round size="xs"
+                    <q-btn v-if="props.row.preview_url" flat dense round size="xs"
                            icon="image" color="primary" class="q-mr-xs"
                            @click.stop="$parent.$emit('preview', props.row.preview_url)">
                         <q-tooltip anchor="bottom middle" self="top middle">Preview</q-tooltip>

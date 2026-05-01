@@ -82,7 +82,7 @@ Sections can be enabled or disabled at runtime via the control panel without res
 - **Per-file download** — click the download icon next to any file
 - **Delete** — select files and click the trash icon to move them to Trash
 - **Undo** — an undo bar appears immediately after deletion; click **Undo** within 10 seconds to restore the batch, or ✕ to dismiss early
-- **Image preview** — click the image icon next to image files to preview in the browser
+- **Image preview** — click the image icon next to image files to preview in the browser *(only in sections where download is enabled)*
 
 ---
 
