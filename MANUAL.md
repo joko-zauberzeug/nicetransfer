@@ -60,9 +60,10 @@ download = "/path/to/download-folder"
 share    = "/path/to/share-folder"
 
 [server]
-port    = 7777
-token   = ""   # empty = randomly generated on each start
-timeout = 60   # minutes until auto-shutdown; 0 = run indefinitely
+port       = 0              # 0 = auto-assign from port_range; e.g. 7777 for a fixed port
+port_range = [7700, 7799]  # range used when port = 0
+token      = ""            # empty = randomly generated on each start
+timeout    = 60            # minutes until auto-shutdown; 0 = run indefinitely
 
 [ui]
 theme    = "auto"   # auto (follows OS), light, dark

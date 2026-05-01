@@ -123,7 +123,22 @@ DOWNLOAD_DIR = (ARGS.download_dir.expanduser().resolve() if ARGS.download_dir
 SHARE_DIR    = (ARGS.share_dir.expanduser().resolve()    if ARGS.share_dir
                 else cfg_path("share",    str(DATA / "share")))
 TRASH_DIR    = DATA / "trash"
-PORT        = ARGS.port or cfg_int("server", "port", 7777)
+_cfg_port = ARGS.port if ARGS.port is not None else cfg_int("server", "port", 0)
+if _cfg_port == 0:
+    _range = cfg.get("server", {}).get("port_range", [7700, 7799])
+    _start, _end = int(_range[0]), int(_range[1])
+    PORT = None
+    import random as _random
+    for _p in _random.sample(range(_start, _end + 1), _end - _start + 1):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as _s:
+            if _s.connect_ex(('127.0.0.1', _p)) != 0:
+                PORT = _p
+                break
+    if PORT is None:
+        print(f"✗  No free port found in range {_start}–{_end}. Set a fixed port in config.toml.")
+        sys.exit(1)
+else:
+    PORT = _cfg_port
 TOKEN       = ARGS.token or cfg_str("server", "token", "") or secrets.token_urlsafe(12)
 TIMEOUT_MIN          = cfg_int("server",  "timeout",        0)   # 0 = no timeout
 VERSION              = "1.2"
@@ -1232,7 +1247,7 @@ async def get_page(request: Request):
             ui.label(
                 "The source package contains all files needed to install and run NiceTransfer. "
                 "Served directly from this device — no internet required to download. "
-                "Includes nicetransfer.py, install.sh, run.sh, the manual, changelog, and LICENSE."
+                "Includes nicetransfer.py, install.sh, the manual, changelog, development notes, AI guides, and LICENSE."
             ).classes("text-body2 nt-text-secondary")
 
         with ui.card().classes("w-full q-pa-md"):
@@ -1281,8 +1296,10 @@ async def get_page(request: Request):
 
 # ── 14. Download & Preview routes ─────────────────────────────────────────────
 
-_SOURCE_FILES = ["nicetransfer.py", "nicetransfer.css", "install.sh", "run.sh",
-                 "MANUAL.md", "CHANGELOG.md", "LICENSE", "README.md"]
+_SOURCE_FILES = ["nicetransfer.py", "nicetransfer.css", "install.sh",
+                 "MANUAL.md", "CHANGELOG.md", "DEVELOPMENT.md",
+                 "llms.md", "llms-nicetransfer.md", "CLAUDE.md",
+                 "LICENSE", "README.md"]
 
 @app.get("/download/source")
 async def download_source():

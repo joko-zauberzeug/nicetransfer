@@ -71,7 +71,9 @@ download = "$DATA_DIR/download"
 share    = "$DATA_DIR/share"
 
 [server]
-port    = 7777
+# port: 0 = auto-assign from port_range (default); set a fixed value e.g. 7777 for stable bookmarks
+port       = 0
+port_range = [7700, 7799]
 # token: leave empty = randomly generated on each start; set own value = fixed
 token   = ""
 # timeout in minutes; 0 = run indefinitely
