@@ -11,6 +11,8 @@
 - **`client_shutdown` in config** — added to `config.toml`, `install.sh`, and Manual config reference
 - **v1.3** — version bump
 
+→ [a8eeb8a](https://github.com/joko-zauberzeug/nicetransfer/commit/a8eeb8acbee8b8caee1bb9dbf48bc9d7f445bfec)
+
 ## Dynamic port assignment, source package fix — joko-zauberzeug, 01. May 2026, 09:43
 
 - **Auto port selection** — `port = 0` in `config.toml` (now the default) picks a random free port from `port_range` at startup; eliminates manual port conflict handling
