@@ -5,6 +5,8 @@
 - **Security fix** — image preview button no longer appears in upload-only sections; previously, users could right-click a previewed image to save it, bypassing the download restriction
 - **v1.4** — version bump
 
+→ [4f71b02](https://github.com/joko-zauberzeug/nicetransfer/commit/4f71b02e6a43f5158535b371fa6ca909aac7c873)
+
 ## v1.3 — Manual overhaul, shutdown permission, config cleanup — joko-zauberzeug, 01. May 2026, 16:09
 
 - **Manual restructured** — audience-first order: client usage and sections before server setup; features grouped into General / For clients / For operators; "Working with files" as a dedicated section; security note on HTTP-only and local network requirement
