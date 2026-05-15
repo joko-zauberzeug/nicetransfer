@@ -13,8 +13,8 @@ Local file transfer hub — browser UI, no cloud, no accounts. Transfers files b
 
 **Interfaces:**
 - Browser UI at `http://<ip>:<port>/?token=<token>`
-- MCP server at `/mcp?token=<token>` (Streamable HTTP)
-- REST endpoints: `/shutdown`, `/download/<section>/<file>`, `/llms.txt`, etc.
+- HTTP endpoints for AI: `/files`, `/upload`, `/download`, `/delete`, `/restore`, `/shutdown`, `/check-updates`, `/manual.md`, etc. — documented in `/llms.txt`
+- MCP server at `/mcp?token=<token>` (optional, for native MCP clients)
 
 ---
 
@@ -112,6 +112,46 @@ Plain `1.x` version numbers. `VERSION` constant in `nicetransfer.py` (line ~129)
 
 ---
 
+## AI Interface Philosophy
+
+**This is a core design decision. Do not change this without understanding the reasoning.**
+
+NiceTransfer's primary AI interface is **plain HTTP + `llms.txt`** — not MCP.
+
+### The principle
+
+When an AI opens the NiceTransfer URL, the HTML `<head>` contains meta tags pointing to `llms.txt`. That file documents everything: what NiceTransfer does, which HTTP endpoints exist, what each one does, and how to use them. The AI makes plain HTTP calls — no MCP client setup, no protocol handshake, no special tooling required. Any AI that can fetch a URL and read text can operate NiceTransfer.
+
+### Why not MCP as primary interface
+
+MCP requires the AI client to have the server URL configured before it can do anything — no prior configuration, no access. Plain HTTP + `llms.txt` requires nothing: the AI opens the URL, finds the meta tag, fetches `llms.txt`, and immediately knows all available operations.
+
+An AI could technically call the MCP endpoint directly via HTTP POST with JSON-RPC messages — MCP Streamable HTTP is just HTTP under the hood. But that means the AI must construct JSON-RPC envelopes, understand the protocol framing, and unpack wrapped responses. Plain REST is the same thing without the protocol overhead.
+
+### No parallel AI-specific implementations
+
+The AI uses what already exists. HTTP endpoints are built for the application; the AI simply uses them too. `llms.txt` is the documentation layer — it tells the AI what the endpoints are, what they do, and how to call them.
+
+**Example:** To check for updates, the AI calls `POST /check-updates?token=...`. It does not guess GitHub API URLs or rely on training data. The endpoint is documented in `llms.txt` and wraps the same tested function the GUI uses.
+
+### Operator controls stay in the GUI
+
+The Control panel (section toggles, permissions, timeout) is not part of the AI interface. These are operator settings — NiceGUI handles them reactively, in real time, with immediate feedback across all connected browsers. Adding HTTP endpoints for them would mean maintaining two full interfaces for operator functions, which defeats the purpose of using NiceGUI.
+
+The AI works within what the operator has configured. If a section is disabled, the AI gets 404 — same as a human client. It does not reconfigure the server.
+
+### MCP overlap is acceptable
+
+Some operations exist in both HTTP and MCP (list, upload, download, shutdown). This is not duplicated code — both paths call the same underlying Python functions. MCP remains for AI clients that natively support it; HTTP is the universal fallback.
+
+When AI clients implement dynamic MCP discovery via the `<meta name="mcp-server">` tag already in every NiceTransfer page, the HTTP overlap will matter less. That infrastructure is already in place.
+
+### The broader pattern
+
+Serve a well-structured `llms.txt` that documents existing HTTP endpoints. AI assistants interact via plain HTTP — no dedicated MCP infrastructure, no client configuration. The `<meta name="llms-txt">` tag is the discovery mechanism. Applicable to any web application.
+
+---
+
 ## What to Avoid
 
 - **Splitting `nicetransfer.py`** into multiple files (breaks the self-contained design)
@@ -120,3 +160,4 @@ Plain `1.x` version numbers. `VERSION` constant in `nicetransfer.py` (line ~129)
 - **Token-less URLs** in any generated link, even localhost
 - **Redirecting startup output** to files (token exposure)
 - **Auto-committing or auto-pushing** without explicit user request
+- **Bypassing the HTTP interface** — for any operation on a running instance, use the endpoints in `llms.txt`; do not reach for shell commands, PID files, or process management

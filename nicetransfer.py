@@ -142,7 +142,7 @@ else:
 _cfg_token  = cfg_str("server", "token", "auto")
 TOKEN       = ARGS.token or (secrets.token_urlsafe(12) if _cfg_token in ("", "auto") else _cfg_token)
 TIMEOUT_MIN          = cfg_int("server",  "timeout",        0)   # 0 = no timeout
-VERSION              = "1.4"
+VERSION              = "1.5"
 UPDATE_CHECK_ON_START = cfg_bool("updates", "check_on_start", False)
 NOTIFY_DEPS          = cfg_bool("updates", "notify_deps",     False)
 UPDATE_CHANNEL       = cfg_str("updates",  "channel",         "stable")
@@ -1007,7 +1007,7 @@ async def index(request: Request):
                                 ui.button("Upgrade", on_click=open_upgrade_dialog) \
                                     .props("flat dense color=primary size=sm")
                             elif _update_checked:
-                                ui.label("Up to date").classes("text-caption nt-text-secondary")
+                                ui.label("NiceTransfer up to date").classes("text-caption nt-text-secondary")
                             else:
                                 ui.label("Not checked").classes("text-caption nt-text-secondary")
                             if _update_notice.get("nicegui"):
@@ -1349,6 +1349,127 @@ async def http_shutdown(request: Request):
     app.shutdown()
     return {"status": "shutting down"}
 
+@app.post("/check-updates")
+async def http_check_updates(request: Request):
+    """Trigger an update check and return version status. Server-only."""
+    if not is_local(request):
+        return Response(status_code=403)
+    import importlib.metadata as _im
+    await _check_updates(force=True)
+    ng_local = _im.version("nicegui")
+    result = {
+        "nicetransfer": {
+            "local":      VERSION,
+            "up_to_date": "nt" not in _update_notice,
+        },
+        "nicegui": {
+            "local":      ng_local,
+            "up_to_date": "nicegui" not in _update_notice,
+        },
+    }
+    if "nt" in _update_notice:
+        result["nicetransfer"]["latest"]  = _update_notice["nt"]["latest"]
+        result["nicetransfer"]["channel"] = _update_notice["nt"]["channel"]
+    if "nicegui" in _update_notice:
+        result["nicegui"]["latest"] = _update_notice["nicegui"]["latest"]
+    return JSONResponse(result)
+
+
+@app.get("/files/{section}")
+async def http_list_files(section: str, request: Request):
+    """List files in a section. Trash requires client_trash_visible permission."""
+    if section == "trash":
+        if not is_local(request) and not state.client_trash_visible:
+            return Response(status_code=403)
+        entries = trash_entries()
+        return JSONResponse([{
+            "name": e["name"], "original_name": e["original_name"],
+            "source": e["source"], "size": e["size"], "modified": e["time"],
+        } for e in entries])
+    section_map = {
+        "share":    (SHARE_DIR,    state.share_enabled),
+        "upload":   (UPLOAD_DIR,   state.upload_enabled),
+        "download": (DOWNLOAD_DIR, state.download_enabled),
+    }
+    if section not in section_map:
+        return JSONResponse({"error": f"Unknown section '{section}'"}, status_code=404)
+    directory, enabled = section_map[section]
+    if not enabled:
+        return JSONResponse({"error": f"Section '{section}' is disabled"}, status_code=404)
+    entries = file_entries(directory)
+    return JSONResponse([{"name": e["name"], "size": e["size"], "modified": e["time"]} for e in entries])
+
+
+@app.post("/upload/{section}")
+async def http_upload_file(section: str, request: Request):
+    """Upload a file via multipart/form-data (field: 'file'). Sections: share, upload."""
+    upload_map = {
+        "share":  (SHARE_DIR,  state.share_enabled),
+        "upload": (UPLOAD_DIR, state.upload_enabled),
+    }
+    if section not in upload_map:
+        return JSONResponse({"error": f"Section '{section}' does not accept uploads"}, status_code=400)
+    directory, enabled = upload_map[section]
+    if not enabled:
+        return JSONResponse({"error": f"Section '{section}' is disabled"}, status_code=404)
+    form = await request.form()
+    file_field = form.get("file")
+    if not hasattr(file_field, "read"):
+        return JSONResponse({"error": "Missing 'file' field (multipart/form-data)"}, status_code=400)
+    filename = getattr(file_field, "filename", None) or "upload"
+    dest = safe_filename(filename, directory)
+    if dest is None:
+        return JSONResponse({"error": "Invalid filename"}, status_code=400)
+    if dest.exists():
+        ts = datetime.now().strftime("%H%M%S")
+        dest = directory / f"{dest.stem}_{ts}{dest.suffix}"
+    data = await file_field.read()
+    dest.write_bytes(data)
+    return JSONResponse({"saved_as": dest.name, "bytes": len(data)})
+
+
+@app.delete("/files/{section}/{filename}")
+async def http_delete_file(section: str, filename: str, request: Request):
+    """Move a file to trash. Permissions match the GUI per-section delete settings."""
+    local = is_local(request)
+    perm_map = {
+        "share":    (SHARE_DIR,    local or state.client_delete_share),
+        "upload":   (UPLOAD_DIR,   local or state.client_delete_upload),
+        "download": (DOWNLOAD_DIR, local or state.client_delete_download),
+    }
+    if section not in perm_map:
+        return JSONResponse({"error": f"Unknown section '{section}'"}, status_code=404)
+    directory, allowed = perm_map[section]
+    if not allowed:
+        return Response(status_code=403)
+    file_path = directory / filename
+    try:
+        file_path.resolve().relative_to(directory.resolve())
+    except ValueError:
+        return JSONResponse({"error": "Invalid filename"}, status_code=400)
+    if not file_path.exists() or not file_path.is_file():
+        return JSONResponse({"error": f"File not found: {filename!r}"}, status_code=404)
+    trash_path = move_to_trash(file_path, directory.name)
+    return JSONResponse({"trashed_as": trash_path.name})
+
+
+@app.post("/restore/{trash_name}")
+async def http_restore_file(trash_name: str, request: Request):
+    """Restore a file from trash to its original section. Requires client_trash_restore for remote clients."""
+    if not is_local(request) and not state.client_trash_restore:
+        return Response(status_code=403)
+    trash_path = TRASH_DIR / trash_name
+    try:
+        trash_path.resolve().relative_to(TRASH_DIR.resolve())
+    except ValueError:
+        return JSONResponse({"error": "Invalid filename"}, status_code=400)
+    if not trash_path.exists() or not trash_path.is_file():
+        return JSONResponse({"error": f"Not found in trash: {trash_name!r}"}, status_code=404)
+    if restore_from_trash(trash_name):
+        return JSONResponse({"status": "restored"})
+    return JSONResponse({"error": "Restore failed"}, status_code=500)
+
+
 def _resolve_file(folder, filename):
     dir_map = {d.name: d for d in [UPLOAD_DIR, DOWNLOAD_DIR, SHARE_DIR]}
     directory = dir_map.get(folder)
@@ -1403,66 +1524,127 @@ async def mcp_server_card():
     })
 
 def _llms_body():
+    import importlib.metadata as _im
     sections = [s for s, on in [("share",    state.share_enabled),
                                  ("upload",   state.upload_enabled),
                                  ("download", state.download_enabled)] if on]
-    mcp_url  = f"http://{LOCAL_IP}:{PORT}/mcp?token={TOKEN}"
-    llms_url = f"http://{LOCAL_IP}:{PORT}/llms.txt?token={TOKEN}"
+    base     = f"http://{LOCAL_IP}:{PORT}"
+    base_t   = f"{base}?token={TOKEN}"
+    mcp_url  = f"{base}/mcp?token={TOKEN}"
+    llms_url = f"{base}/llms.txt?token={TOKEN}"
+    ng_ver   = _im.version("nicegui")
     return (
-        f"# NiceTransfer\n\n"
+        f"# NiceTransfer v{VERSION}\n\n"
         f"Local file transfer hub. Transfer files between devices on the same Wi-Fi network via browser.\n"
-        f"This file is intended for AI assistants. It describes how to interact with NiceTransfer programmatically.\n\n"
+        f"Running on NiceGUI {ng_ver}.\n"
+        f"This file is intended for AI assistants.\n"
+        f"Read it completely before taking any action — do not truncate with head, line limits, or partial reads.\n"
+        f"The endpoints you need are throughout the file, not just at the top.\n\n"
 
-        f"## Connecting\n\n"
-        f"NiceTransfer exposes an MCP (Model Context Protocol) endpoint over Streamable HTTP.\n"
-        f"No browser, no manual steps — the AI can transfer files directly via tool calls.\n\n"
-        f"### If the AI received a URL from a human\n\n"
-        f"Fetch the URL. The HTML <head> contains:\n\n"
-        f"  <meta name=\"mcp-server\" content=\"http://...:{PORT}/mcp?token=<token>\">\n\n"
-        f"Use that content value as the MCP endpoint.\n\n"
-        f"### MCP endpoint (this server)\n\n"
-        f"  {mcp_url}\n\n"
-        f"Transport : Streamable HTTP (MCP spec 2025-03-26)\n"
-        f"Auth      : token is already embedded in the URL above as ?token=...\n\n"
+        f"## How to interact\n\n"
+        f"Use plain HTTP requests with the token embedded as a query parameter. No MCP client required.\n"
+        f"All endpoints require ?token=TOKEN. The token is embedded in all URLs in this file.\n"
+        f"These endpoints are the complete interface — use them for all server operations.\n"
+        f"Do not reach for shell commands, process management, or other means.\n"
+        f"If an operation isn't listed here, ask before inventing an approach.\n"
+        f"Always read responses in full — do not truncate, limit lines, or stop early.\n\n"
 
         f"## Active sections\n\n"
         f"{', '.join(sections) if sections else 'none (all sections currently disabled)'}\n\n"
+        f"Sections: 'share' (bidirectional), 'upload' (receive only), 'download' (serve only).\n\n"
 
-        f"## Tools\n\n"
-        f"get_status()\n"
-        f"  Returns: server URL, active sections\n\n"
-        f"list_files(section)\n"
-        f"  section: 'upload' | 'download' | 'share'\n"
-        f"  Returns: list of {{name, size, modified}}\n\n"
-        f"upload_file(section, filename, content_base64)\n"
-        f"  section: 'upload' | 'download' | 'share'\n"
-        f"  content_base64: base64-encoded file content\n"
-        f"  Returns: {{saved_as, bytes}}\n\n"
-        f"download_file(section, filename)\n"
-        f"  section: 'upload' | 'download' | 'share'\n"
-        f"  Returns: {{filename, content_base64, bytes}}\n\n"
-        f"shutdown_server()\n"
-        f"  Shuts down NiceTransfer cleanly. Use when done.\n"
-        f"  Returns: {{status: 'shutting down'}}\n\n"
+        f"## HTTP endpoints\n\n"
+        f"### File listing\n\n"
+        f"  GET  {base}/files/{{section}}?token={TOKEN}\n"
+        f"    List files in a section. section: share | upload | download | trash\n"
+        f"    Trash requires client_trash_visible permission for remote clients.\n"
+        f"    Returns: list of {{name, size, modified}} (trash also has original_name, source)\n\n"
 
-        f"## Pages\n\n"
-        f"  /          — main transfer interface (sections, file lists, control panel)\n"
-        f"  /manual    — user manual\n"
-        f"  /changelog — version history\n"
-        f"  /get       — source code download (AGPL v3 compliance)\n\n"
+        f"### File upload\n\n"
+        f"  POST {base}/upload/{{section}}?token={TOKEN}\n"
+        f"    Upload a file. section: share | upload\n"
+        f"    Body: multipart/form-data with a 'file' field.\n"
+        f"    Returns: {{\"saved_as\": \"filename\", \"bytes\": N}}\n\n"
 
-        f"## Source & license\n\n"
-        f"NiceTransfer is AGPL v3. Source download endpoints (token required):\n\n"
-        f"  /download/source  — ZIP of all source files\n"
-        f"  /download/license — plain text LICENSE\n\n"
+        f"### File download and preview\n\n"
+        f"  GET  {base}/download/{{section}}/{{filename}}?token={TOKEN}\n"
+        f"    Download a file. section: share | upload | download\n"
+        f"    Returns: file content (application/octet-stream)\n\n"
+        f"  GET  {base}/preview/{{section}}/{{filename}}?token={TOKEN}\n"
+        f"    Preview an image file (JPG, PNG, GIF, WebP, SVG).\n"
+        f"    Only available in sections where download is enabled.\n"
+        f"    Returns: image content\n\n"
+        f"  GET  {base}/download/source?token={TOKEN}\n"
+        f"    Download all source files as a ZIP archive.\n\n"
+        f"  GET  {base}/download/license?token={TOKEN}\n"
+        f"    Plain text LICENSE (AGPL v3).\n\n"
+
+        f"### File deletion and restore\n\n"
+        f"  DELETE {base}/files/{{section}}/{{filename}}?token={TOKEN}\n"
+        f"    Move a file to trash. section: share | upload | download\n"
+        f"    Client permissions per section: client_delete_share (default on),\n"
+        f"    client_delete_upload (default on), client_delete_download (default off).\n"
+        f"    Returns: {{\"trashed_as\": \"timestamp_filename\"}}\n\n"
+        f"  POST {base}/restore/{{trash_name}}?token={TOKEN}\n"
+        f"    Restore a file from trash. trash_name is the timestamped name from /files/trash.\n"
+        f"    Requires client_trash_restore permission for remote clients (default off).\n"
+        f"    Returns: {{\"status\": \"restored\"}}\n\n"
+
+        f"### Server control (server device only — 403 for remote clients)\n\n"
+        f"  POST {base}/shutdown?token={TOKEN}\n"
+        f"    Shut down NiceTransfer cleanly.\n"
+        f"    Returns: {{\"status\": \"shutting down\"}}\n"
+        f"    Note: also available to remote clients if operator has enabled client_shutdown.\n\n"
+        f"  POST {base}/check-updates?token={TOKEN}\n"
+        f"    Check whether updates are available for NiceTransfer and NiceGUI.\n"
+        f"    Queries GitHub (NiceTransfer) and PyPI (NiceGUI). May take a few seconds.\n"
+        f"    Returns: {{\"nicetransfer\": {{\"local\", \"up_to_date\", \"latest\"?}},\n"
+        f"              \"nicegui\":      {{\"local\", \"up_to_date\", \"latest\"?}}}}\n\n"
+
+        f"## Documentation (plain text — read these, do not guess)\n\n"
+        f"  GET  {base}/manual.md?token={TOKEN}\n"
+        f"    User manual. How to use NiceTransfer, all features explained.\n"
+        f"    Read this when asked how NiceTransfer works or how to perform a task.\n\n"
+        f"  GET  {base}/changelog.md?token={TOKEN}\n"
+        f"    Version history. What changed in each release.\n\n"
+        f"  GET  {base}/development.md?token={TOKEN}\n"
+        f"    Development guide. Architecture, design concepts, AI integration. Server-only.\n\n"
+
+        f"## Pages (browser)\n\n"
+        f"  {base}/?token={TOKEN}          — main interface (file sections, control panel)\n"
+        f"  {base}/manual?token={TOKEN}    — user manual\n"
+        f"  {base}/changelog?token={TOKEN} — version history\n"
+        f"  {base}/get?token={TOKEN}       — source download page\n\n"
+
+        f"## AI discovery meta tags\n\n"
+        f"Every page <head> contains:\n"
+        f"  <meta name=\"llms-txt\"        content=\"{llms_url}\">  ← this file\n"
+        f"  <meta name=\"mcp-server\"      content=\"{mcp_url}\">\n"
+        f"  <meta name=\"mcp-server-card\" content=\"{base}/.well-known/mcp/server-card.json?token={TOKEN}\">\n\n"
+
+        f"## MCP (optional)\n\n"
+        f"For AI clients with native MCP support: {mcp_url}\n"
+        f"Transport: Streamable HTTP. Tools: get_status, list_files, upload_file, download_file, shutdown_server.\n\n"
 
         f"## Notes\n\n"
-        f"- The token regenerates on each server start unless a fixed token is set in config.toml (token = \"auto\" is the default).\n"
-        f"- The port is assigned dynamically by default (from a configured range). Always read the current port from the PID file or startup banner.\n"
-        f"- Always fetch this file fresh ({llms_url}) to get the current MCP URL.\n"
-        f"- Files in 'upload' are meant to be sent to the server; 'download' to be fetched from it.\n"
-        f"- 'share' is bidirectional.\n"
+        f"- Token regenerates on each start unless fixed in config.toml. Always fetch this file fresh.\n"
+        f"- Port is assigned dynamically. Read it from the startup banner or PID file.\n"
+        f"- Always fetch this file fresh: {llms_url}\n"
     )
+
+@app.get("/manual.md")
+async def manual_md():
+    return PlainTextResponse((SCRIPT_DIR / "MANUAL.md").read_text())
+
+@app.get("/changelog.md")
+async def changelog_md():
+    return PlainTextResponse((SCRIPT_DIR / "CHANGELOG.md").read_text())
+
+@app.get("/development.md")
+async def development_md(request: Request):
+    if not is_local(request):
+        return Response(status_code=403)
+    return PlainTextResponse((SCRIPT_DIR / "DEVELOPMENT.md").read_text())
 
 @app.get("/llms.txt")
 async def llms_txt():

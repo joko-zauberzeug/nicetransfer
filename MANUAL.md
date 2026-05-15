@@ -42,7 +42,7 @@ NiceTransfer is designed for quick, local file exchange — no accounts, no clou
 - **Get** — download the source package directly from the running server; no internet or GitHub needed for distribution
 - **Changelog** — version history accessible in the browser
 - **Development** — architecture overview and project notes, visible on the server device only
-- **AI integration** — MCP server built in; AI assistants can discover and use NiceTransfer via standard protocol
+- **AI integration** — plain HTTP interface with `llms.txt` discovery; any AI that can fetch a URL can operate NiceTransfer without special client setup
 
 ---
 
@@ -247,22 +247,42 @@ While running, the network is checked every 5 seconds. A notification appears in
 
 ## AI integration
 
-NiceTransfer embeds AI discovery hints in every page. When an AI app (e.g. Claude) scans the QR code and fetches the URL, it finds the following in the HTML `<head>`:
+NiceTransfer's primary AI interface is **plain HTTP + `llms.txt`** — no MCP client, no special setup required. Any AI that can fetch a URL and read text can operate NiceTransfer.
+
+Every page embeds discovery hints in the HTML `<head>`:
 
 ```html
+<meta name="llms-txt"        content="http://192.168.x.x:<port>/llms.txt?token=...">
 <meta name="mcp-server"      content="http://192.168.x.x:<port>/mcp?token=...">
 <meta name="mcp-server-card" content="http://192.168.x.x:<port>/.well-known/mcp/server-card.json?token=...">
-<meta name="llms-txt"        content="http://192.168.x.x:<port>/llms.txt?token=...">
 ```
 
-Two additional endpoints are available (both token-protected):
+### llms.txt — the AI entry point
 
-| Endpoint | Content |
-|----------|---------|
-| `/.well-known/mcp/server-card.json` | Machine-readable capability description (JSON) |
-| `/llms.txt` | Plain-text description of tools and API for AI assistants |
+Fetch `/llms.txt?token=...` to get the complete operating instructions: all available HTTP endpoints, what they do, and how to call them. The AI uses these endpoints directly — no guessing, no training-data assumptions.
 
-The MCP endpoint (`/mcp`) implements the full [Model Context Protocol](https://modelcontextprotocol.io) over Streamable HTTP. Tools available: `get_status`, `list_files`, `upload_file`, `download_file`, `shutdown_server`. See `/llms.txt` for the complete tool reference.
+### HTTP endpoints for AI
+
+All endpoints require `?token=TOKEN`. Key operations:
+
+| Endpoint | What it does |
+|----------|--------------|
+| `GET /files/{section}` | List files (section: share, upload, download, trash) |
+| `POST /upload/{section}` | Upload a file (multipart/form-data, field: `file`) |
+| `GET /download/{section}/{filename}` | Download a file |
+| `DELETE /files/{section}/{filename}` | Move a file to trash |
+| `POST /restore/{trash_name}` | Restore a file from trash |
+| `POST /shutdown` | Shut down the server cleanly |
+| `POST /check-updates` | Check for NiceTransfer and NiceGUI updates |
+| `GET /manual.md` | This manual as plain text |
+| `GET /changelog.md` | Version history as plain text |
+| `GET /development.md` | Development guide as plain text *(server only)* |
+
+Client permissions (delete, trash access, shutdown) apply to remote AI clients exactly as they do to human clients — configured in the Control panel.
+
+### MCP (optional)
+
+An MCP server is available at `/mcp` for AI clients with native MCP support. It covers the same operations as the HTTP interface. See `/llms.txt` for details.
 
 ---
 

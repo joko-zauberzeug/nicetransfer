@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.5 — HTTP-first AI interface, full file API, NiceGUI 3.12.0 — joko-zauberzeug, 16. May 2026, 01:01
+
+- **HTTP-first AI interface** — primary AI interface is plain HTTP + `llms.txt`; no MCP client or prior configuration needed; any AI that can fetch a URL can operate NiceTransfer
+- **`llms.txt` operational contract** — explicit instructions at the top: read in full, use documented endpoints, do not truncate responses, do not reach for shell commands or other means
+- **`GET /files/{section}`** — list files in share, upload, download, or trash; replaces MCP-only `list_files`
+- **`POST /upload/{section}`** — upload via multipart/form-data to share or upload sections; replaces MCP-only `upload_file`
+- **`DELETE /files/{section}/{filename}`** — move a file to trash; respects per-section client permissions
+- **`POST /restore/{trash_name}`** — restore a file from trash; respects `client_trash_restore` permission
+- **`POST /check-updates`** — trigger update check and return version status for NiceTransfer and NiceGUI; server-only
+- **`GET /manual.md`, `/changelog.md`, `/development.md`** — documentation as plain text for AI consumption; `llms.txt` directs AI to read these rather than rely on training data
+- **NiceGUI 3.12.0** — upgraded from 3.11.1; no breaking changes
+- **"NiceTransfer up to date" label** — update status label now reads "NiceTransfer up to date" instead of misleading "Up to date"
+- **AI interface philosophy documented** — `llms-nicetransfer.md` and `DEVELOPMENT.md` capture the design decisions: HTTP vs MCP, why operator controls stay in the GUI, dynamic MCP discovery as future direction
+- **v1.5** — version bump
+
 ## v1.4 — Security fix: image preview restricted to download-enabled sections — joko-zauberzeug, 01. May 2026, 21:49
 
 - **Security fix** — image preview button no longer appears in upload-only sections; previously, users could right-click a previewed image to save it, bypassing the download restriction

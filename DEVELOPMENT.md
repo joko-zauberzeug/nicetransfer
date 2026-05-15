@@ -45,6 +45,8 @@ Four file sections — Share, Upload only, Download only, Trash — each backed 
 
 ## AI integration
 
+### Discovery
+
 NiceTransfer embeds AI discovery hints in every page `<head>`:
 
 ```html
@@ -53,13 +55,29 @@ NiceTransfer embeds AI discovery hints in every page `<head>`:
 <meta name="llms-txt"        content="http://<ip>:<port>/llms.txt?token=...">
 ```
 
-These three endpoints are all dynamic — served by the running instance, token-protected, and generated from the current state. An AI assistant that scans the QR code or opens the URL discovers them automatically.
+These endpoints are dynamic — served by the running instance, token-protected, generated from current state. An AI that opens any NiceTransfer URL finds them automatically.
 
-A second discovery path targets terminal-based AI agents (like Claude Code): the startup banner printed to stdout contains the token, the local URL, and a prompt to fetch `/llms-local.txt`. An AI running `./run.sh` in a session reads that output, has the token, and can immediately pull its operating instructions — no QR code, no browser needed.
+A second path targets terminal-based agents (like Claude Code): the startup banner printed to stdout contains the token and a direct link to `/llms-local.txt`. An AI running `./run.sh` reads that output and can immediately fetch its operating instructions — no QR code, no browser needed.
 
-`/llms.txt` is a plain-text description of the available MCP tools and API, intended for AI assistants. `/llms-local.txt` (server-only) includes extended development instructions. Both are generated at request time from templates in `nicetransfer.py`.
+`/llms.txt` documents the HTTP API and available operations for AI assistants. `/llms-local.txt` (server-only) adds extended development instructions. Both are generated at request time from `nicetransfer.py`.
 
 In practice, AI access currently works from the server device — a desktop AI like Claude Code can connect directly. Remote clients on the same Wi-Fi can reach the browser UI, but most hosted AI assistants can't reach a local network address. As local AI apps and on-device models become more common, the discovery layer is already in place.
+
+### HTTP-first interface philosophy
+
+The primary AI interface is **plain HTTP + `llms.txt`** — not MCP.
+
+`llms.txt` documents every HTTP endpoint: what it does, how to call it, what it returns. An AI reads this file and makes plain HTTP requests. No MCP client, no protocol handshake, no prior configuration required.
+
+MCP Streamable HTTP is technically also plain HTTP under the hood (JSON-RPC over POST). But calling it directly without a configured MCP client means constructing JSON-RPC envelopes manually — more complexity, no benefit over a simple REST call. A configured MCP client hides that complexity, but requires setup that HTTP doesn't.
+
+**Operator controls are not part of the AI interface.** Section toggles, permissions, and timeout belong in the NiceGUI Control panel — reactive, real-time, operator-facing. The AI works within whatever the operator has configured, not as an operator itself. This is why there is no `PATCH /state` endpoint.
+
+### MCP as optional layer
+
+The MCP server (`/mcp`) is available for AI clients that natively support it — a bonus, not the primary path. Some operations overlap between HTTP and MCP (list, upload, download, shutdown); both call the same underlying Python functions, so there is no duplicated logic.
+
+When AI clients implement dynamic MCP discovery via the `<meta name="mcp-server">` tag already present on every page, the HTTP/MCP distinction will matter less. That infrastructure is already in place.
 
 ---
 
