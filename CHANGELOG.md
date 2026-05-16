@@ -1,5 +1,11 @@
 # Changelog
 
+## llms.txt: protocol-aware hints, HTTPS groundwork, read-completely in line 1 — joko-zauberzeug, 16. May 2026, 02:03
+
+- **"Read completely" in line 1** — the most critical instruction now lives in the title line of `llms.txt`; even a `head -1` or `head -3` captures it; lines 2–3 reinforce and explain why truncating loses endpoints
+- **Protocol-aware hint** — "How to interact" section now states the active protocol and what to use: on HTTP, web-fetch tools that auto-upgrade to HTTPS will fail; `curl -s` via shell is recommended; web-based agents are warned that the server is on a local network
+- **HTTPS/selfcert groundwork** — `base` URL is now built from a `scheme` variable instead of a hardcoded `http://`; TODO placeholders for self-signed and trusted-cert cases are in place; when HTTPS is added, `llms.txt` will automatically reflect the right protocol and curl flags
+
 ## v1.5 — HTTP-first AI interface, full file API, NiceGUI 3.12.0 — joko-zauberzeug, 16. May 2026, 01:01
 
 - **HTTP-first AI interface** — primary AI interface is plain HTTP + `llms.txt`; no MCP client or prior configuration needed; any AI that can fetch a URL can operate NiceTransfer
@@ -14,6 +20,8 @@
 - **"NiceTransfer up to date" label** — update status label now reads "NiceTransfer up to date" instead of misleading "Up to date"
 - **AI interface philosophy documented** — `llms-nicetransfer.md` and `DEVELOPMENT.md` capture the design decisions: HTTP vs MCP, why operator controls stay in the GUI, dynamic MCP discovery as future direction
 - **v1.5** — version bump
+
+→ [84cd6ae](https://github.com/joko-zauberzeug/nicetransfer/commit/84cd6aed30679b1dc5c02679a8ce910711a65336)
 
 ## v1.4 — Security fix: image preview restricted to download-enabled sections — joko-zauberzeug, 01. May 2026, 21:49
 

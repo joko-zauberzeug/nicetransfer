@@ -1528,22 +1528,30 @@ def _llms_body():
     sections = [s for s, on in [("share",    state.share_enabled),
                                  ("upload",   state.upload_enabled),
                                  ("download", state.download_enabled)] if on]
-    base     = f"http://{LOCAL_IP}:{PORT}"
+    # TODO: derive scheme from config when HTTPS/selfcert support is added
+    scheme   = "http"
+    base     = f"{scheme}://{LOCAL_IP}:{PORT}"
     base_t   = f"{base}?token={TOKEN}"
     mcp_url  = f"{base}/mcp?token={TOKEN}"
     llms_url = f"{base}/llms.txt?token={TOKEN}"
     ng_ver   = _im.version("nicegui")
+    if scheme == "http":
+        protocol_note = (
+            f"Protocol: HTTP (not HTTPS). Tools that silently upgrade HTTP to HTTPS "
+            f"(e.g. browser-based web fetch) will fail — use `curl -s` via shell instead.\n"
+            f"Web-based agents: this server is on a local network and likely unreachable from hosted environments.\n"
+        )
+    # TODO: elif selfcert: protocol_note = "Protocol: HTTPS (self-signed). Use `curl -sk` — TLS verification will fail.\n"
+    # TODO: else: protocol_note = "Protocol: HTTPS.\n"
     return (
-        f"# NiceTransfer v{VERSION}\n\n"
-        f"Local file transfer hub. Transfer files between devices on the same Wi-Fi network via browser.\n"
-        f"Running on NiceGUI {ng_ver}.\n"
-        f"This file is intended for AI assistants.\n"
-        f"Read it completely before taking any action — do not truncate with head, line limits, or partial reads.\n"
-        f"The endpoints you need are throughout the file, not just at the top.\n\n"
+        f"# NiceTransfer v{VERSION} — read this file completely before acting. Do not truncate. If truncated: stop, re-fetch, read fully.\n"
+        f"This file is for AI assistants. Endpoints are distributed throughout — truncating means missing endpoints.\n"
+        f"Local file transfer hub. Transfer files between devices on the same Wi-Fi network via browser. Running on NiceGUI {ng_ver}.\n\n"
 
         f"## How to interact\n\n"
-        f"Use plain HTTP requests with the token embedded as a query parameter. No MCP client required.\n"
+        f"Make HTTP requests with the token embedded as a query parameter. No MCP client required.\n"
         f"All endpoints require ?token=TOKEN. The token is embedded in all URLs in this file.\n"
+        f"{protocol_note}\n"
         f"These endpoints are the complete interface — use them for all server operations.\n"
         f"Do not reach for shell commands, process management, or other means.\n"
         f"If an operation isn't listed here, ask before inventing an approach.\n"
