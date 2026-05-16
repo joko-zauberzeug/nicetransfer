@@ -1,10 +1,19 @@
 # Changelog
 
+## Smarter AI discovery — joko-zauberzeug, 16. May 2026, 02:58
+
+- **Banner fetch hint** — startup banner now says `↑ fetch llms+ and read completely before acting`; tells AI assistants exactly which URL to fetch and that truncating is not allowed
+- **Banner spacing** — blank line before the banner box prevents output from a previous command (e.g. shutdown response) from running into the border
+- **`llms-txt-instruction` meta tag** — new meta tag on every page instructs AI clients to fetch and read `llms-txt` completely, not truncate or summarize
+- **Dynamic `llms-txt` meta tag** — localhost visitors receive a link to `llms-local.txt` (full dev instructions); remote clients receive `llms.txt`; the server-side 403 restriction already existed, now discovery matches
+
 ## llms.txt: protocol-aware hints, HTTPS groundwork, read-completely in line 1 — joko-zauberzeug, 16. May 2026, 02:03
 
 - **"Read completely" in line 1** — the most critical instruction now lives in the title line of `llms.txt`; even a `head -1` or `head -3` captures it; lines 2–3 reinforce and explain why truncating loses endpoints
 - **Protocol-aware hint** — "How to interact" section now states the active protocol and what to use: on HTTP, web-fetch tools that auto-upgrade to HTTPS will fail; `curl -s` via shell is recommended; web-based agents are warned that the server is on a local network
 - **HTTPS/selfcert groundwork** — `base` URL is now built from a `scheme` variable instead of a hardcoded `http://`; TODO placeholders for self-signed and trusted-cert cases are in place; when HTTPS is added, `llms.txt` will automatically reflect the right protocol and curl flags
+
+→ [7e446f6](https://github.com/joko-zauberzeug/nicetransfer/commit/7e446f6b61abd20e69c9ccf04b3a18a81c76afc6)
 
 ## v1.5 — HTTP-first AI interface, full file API, NiceGUI 3.12.0 — joko-zauberzeug, 16. May 2026, 01:01
 

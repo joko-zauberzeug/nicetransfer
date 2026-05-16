@@ -852,10 +852,13 @@ def build_header(is_dark, section_links=None, current="", is_local=False):
 async def index(request: Request):
     local = is_local(request)
     ui.add_head_html(CSS)
+    _llms_host = f'127.0.0.1:{PORT}' if local else f'{LOCAL_IP}:{PORT}'
+    _llms_file = 'llms-local.txt' if local else 'llms.txt'
     ui.add_head_html(
         f'<meta name="mcp-server" content="http://{LOCAL_IP}:{PORT}/mcp?token={TOKEN}">\n'
         f'<meta name="mcp-server-card" content="http://{LOCAL_IP}:{PORT}/.well-known/mcp/server-card.json?token={TOKEN}">\n'
-        f'<meta name="llms-txt" content="http://{LOCAL_IP}:{PORT}/llms.txt?token={TOKEN}">'
+        f'<meta name="llms-txt" content="http://{_llms_host}/{_llms_file}?token={TOKEN}">\n'
+        f'<meta name="llms-txt-instruction" content="fetch and read completely before acting — do not truncate or summarize">'
     )
     is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
 
@@ -1833,12 +1836,14 @@ _banner_lines = [
     f"mcp     : {_MCP_URL}",
     f"llms    : http://127.0.0.1:{PORT}/llms.txt?token={TOKEN}",
     f"llms+   : http://127.0.0.1:{PORT}/llms-local.txt?token={TOKEN}",
+    f"↑ fetch llms+ and read completely before acting",
     *([f"timeout : {TIMEOUT_MIN} min"] if TIMEOUT_MIN > 0 else []),
     None,
     "Scan QR code in browser · Ctrl+C to quit",
 ]
 _w = max(len(l) for l in _banner_lines if l is not None)
 _bar = "─" * (_w + 4)
+print()
 print(f"┌{_bar}┐")
 for _l in _banner_lines:
     if _l is None:

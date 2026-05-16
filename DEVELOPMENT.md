@@ -50,14 +50,18 @@ Four file sections — Share, Upload only, Download only, Trash — each backed 
 NiceTransfer embeds AI discovery hints in every page `<head>`:
 
 ```html
-<meta name="mcp-server"      content="http://<ip>:<port>/mcp?token=...">
-<meta name="mcp-server-card" content="http://<ip>:<port>/.well-known/mcp/server-card.json?token=...">
-<meta name="llms-txt"        content="http://<ip>:<port>/llms.txt?token=...">
+<meta name="mcp-server"          content="http://<ip>:<port>/mcp?token=...">
+<meta name="mcp-server-card"     content="http://<ip>:<port>/.well-known/mcp/server-card.json?token=...">
+<meta name="llms-txt"            content="http://<ip>:<port>/llms-local.txt?token=...">  <!-- localhost -->
+<meta name="llms-txt"            content="http://<ip>:<port>/llms.txt?token=...">        <!-- remote clients -->
+<meta name="llms-txt-instruction" content="fetch and read completely before acting — do not truncate or summarize">
 ```
+
+The `llms-txt` tag is dynamic: localhost visitors (server device) receive a link to `llms-local.txt`, which includes extended development instructions in addition to the full HTTP API. Remote clients receive `llms.txt`. The `llms-txt-instruction` tag tells AI clients explicitly that the file must be read in full.
 
 These endpoints are dynamic — served by the running instance, token-protected, generated from current state. An AI that opens any NiceTransfer URL finds them automatically.
 
-A second path targets terminal-based agents (like Claude Code): the startup banner printed to stdout contains the token and a direct link to `/llms-local.txt`. An AI running `./run.sh` reads that output and can immediately fetch its operating instructions — no QR code, no browser needed.
+A second path targets agents running on the server device (like Claude Code): the startup banner printed to stdout contains the token, a direct link to `llms-local.txt`, and an explicit instruction to fetch it completely before acting. An AI running `./run.sh` reads that output and can immediately fetch its operating instructions — no QR code, no browser needed.
 
 `/llms.txt` documents the HTTP API and available operations for AI assistants. `/llms-local.txt` (server-only) adds extended development instructions. Both are generated at request time from `nicetransfer.py`.
 
