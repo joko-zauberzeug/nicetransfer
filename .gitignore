@@ -25,6 +25,7 @@ data/share/*
 # Internal planning docs — kept locally, not published
 MCP.md
 PLATFORMS.md
+llms-ai-integration.md
 
 # NiceGUI runtime cache
 .nicegui/

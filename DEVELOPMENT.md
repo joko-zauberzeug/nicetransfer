@@ -45,6 +45,53 @@ Four file sections — Share, Upload only, Download only, Trash — each backed 
 
 ## AI integration
 
+### Why "read completely" instructions must never be removed
+
+Every AI-facing text in NiceTransfer — `llms.txt`, `llms-local.txt`, meta tags, the startup banner — contains an explicit instruction to fetch and read the document completely. This is not boilerplate. Do not remove or shorten these instructions.
+
+**Why AIs truncate by default.** Current language models are trained to be efficient: they summarize, skip ahead, stop reading once they think they have enough context, and cut off long outputs at internal limits. This is useful behavior in most contexts. For NiceTransfer it is harmful: the AI will appear to understand the interface while silently missing parts of it.
+
+**Why truncation breaks NiceTransfer specifically.** `llms.txt` is structured as a reference document, not a narrative. HTTP endpoints are distributed throughout the file — file listing near the top, deletion and restore further down, server control near the end. An AI that reads only the first half knows about listing and uploading but not deleting or shutdown. It will not notice anything is missing. It will either invent plausible-looking endpoints (which don't exist), silently skip operations it should perform, or report false uncertainty. The failure is invisible and confident.
+
+**What every read-completely instruction must contain.** "Read completely" alone is insufficient — an AI already believes it is reading completely. The instruction must include explicit negative formulations that counter specific failure modes:
+
+- **"do not truncate"** — tools and APIs have output limits; the AI must not accept a cut-off response
+- **"do not summarize"** — AIs condense long output by default; summarizing loses endpoint details
+- **"do not stop early"** — AIs stop when they believe they have enough context; they must be told that is not their call here
+- **"do not read partially"** — AIs may fetch only a range or the first N lines; the full file is required
+
+A correct instruction looks like this:
+> fetch and read in full — do not truncate, summarize, stop early, or read partially
+
+A weak instruction that will fail silently:
+> read completely before acting
+
+The positive formulation ("read completely") does not override the AI's default behavior. Only the explicit negatives do.
+
+**The defense in depth.** Because no single instruction is guaranteed to work, the same requirement appears in multiple places and as early as possible:
+
+- **Line 1 of `llms.txt`** — the very first thing an AI reads is the instruction to read the rest completely
+- **`llms-txt-instruction` meta tag** — before the AI even fetches `llms.txt`, the HTML page tells it to read the linked file in full
+- **`nicetransfer-manual` meta tag** — same instruction for the manual
+- **Startup banner AI line** — for agents running on the server device, the instruction appears before any file is fetched, as the very first line of output
+- **`llms-local.txt` header** — the local extended file repeats the instruction at the top
+
+If any of these is removed, the coverage degrades. If all are removed, AI clients will behave unpredictably — sometimes correctly, often not, always without warning. Keep them all.
+
+**General rule for all future development.** Whenever you add, change, or extend any place where an AI is directed to read a file or document — whether in a meta tag, the startup banner, `llms.txt`, `llms-local.txt`, or any new AI-facing surface — the instruction must always include the following negative formulations explicitly:
+
+> do not truncate, summarize, stop early, or read partially
+
+Omitting any of these is not a safe shortcut. Each targets a distinct failure mode. "Read completely" or "read in full" alone is not sufficient — see the example above. No doubt: include all four.
+
+**Canonical instruction and how to keep files in sync.** In `nicetransfer.py`, all AI read instructions are derived from the constant `AI_READ_INSTR`. When this string changes, the static Markdown files must be updated manually to match — they cannot reference the Python constant. To find every place that needs updating:
+
+```bash
+grep -rn "fetch and read in full\|do not truncate, summarize" MANUAL.md DEVELOPMENT.md
+```
+
+Update every match to reflect the new canonical string. Do not leave any of these files out of sync with `AI_READ_INSTR`.
+
 ### Discovery
 
 NiceTransfer embeds AI discovery hints in every page `<head>`:

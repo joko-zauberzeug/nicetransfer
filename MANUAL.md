@@ -249,12 +249,55 @@ While running, the network is checked every 5 seconds. A notification appears in
 
 NiceTransfer's primary AI interface is **plain HTTP + `llms.txt`** — no MCP client, no special setup required. Any AI that can fetch a URL and read text can operate NiceTransfer.
 
+### Working with an AI assistant
+
+An AI assistant running on the server device (e.g. Claude Code) can start, operate, and stop NiceTransfer entirely through the HTTP interface. For this to work reliably, the right phrases matter — some instructions trigger the correct behavior, others do not.
+
+**Starting NiceTransfer**
+
+Tell the AI explicitly which script to run:
+
+> "Start NiceTransfer with `./run.sh`"
+
+Do not just say "start NiceTransfer" — the AI may guess wrong. After starting, the AI should read the `llms+` URL from the banner output automatically. If it does not, say:
+
+> "Fetch the `llms+` URL from the banner and read it completely"
+
+**Getting the AI to read a URL (not open a browser)**
+
+There is an important difference between opening a URL and visiting it:
+
+- ❌ "Open the local URL" → opens a browser window; the AI reads nothing
+- ❌ "Show me the site" → same result
+- ✓ "Visit the local URL" → the AI fetches the page and reads the HTML
+- ✓ "Fetch `llms+` and read it completely" → the AI fetches and reads the full operating instructions
+
+**Phrases that work reliably**
+
+| What you want | Say this |
+|---|---|
+| Start NiceTransfer | "Start NiceTransfer with `./run.sh`" |
+| Read operating instructions | "Fetch `llms+` from the banner and read it completely" |
+| List files | "List the files in share" (or upload / download) |
+| Upload a file | "Upload this file to share" |
+| Download a file | "Download `filename` from share" |
+| Check for updates | "Check for updates" |
+| Shut down | "Shut down NiceTransfer" |
+| Explain a feature | "Read the manual and explain how sections work" |
+
+**What the AI cannot do**
+
+Operator controls — section toggles, permissions, timeout — are only available in the browser Control panel. The AI works within whatever is currently configured; it cannot reconfigure the server. If a section is disabled, the AI will get a 404, just like a human client.
+
 Every page embeds discovery hints in the HTML `<head>`:
 
 ```html
-<meta name="llms-txt"        content="http://192.168.x.x:<port>/llms.txt?token=...">
-<meta name="mcp-server"      content="http://192.168.x.x:<port>/mcp?token=...">
-<meta name="mcp-server-card" content="http://192.168.x.x:<port>/.well-known/mcp/server-card.json?token=...">
+<meta name="llms-txt"             content="http://192.168.x.x:<port>/llms.txt?token=...">
+<!-- on the server device (localhost): points to llms-local.txt instead -->
+<meta name="llms-txt-instruction" content="fetch and read completely before acting — do not truncate, summarize, stop early, or read partially">
+<meta name="nicetransfer-manual"  content="http://...:<port>/manual.md?token=... — user manual; fetch and read completely — do not truncate, summarize, stop early, or read partially — when asked how NiceTransfer works, how to use a feature, or for section explanations">
+<meta name="mcp-server"           content="http://192.168.x.x:<port>/mcp?token=...">
+<meta name="mcp-server-card"      content="http://192.168.x.x:<port>/.well-known/mcp/server-card.json?token=...">
 ```
 
 ### llms.txt — the AI entry point

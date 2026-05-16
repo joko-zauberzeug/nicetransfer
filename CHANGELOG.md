@@ -1,11 +1,28 @@
 # Changelog
 
+## AI read instructions: canonical form, variable, consistency — joko-zauberzeug, 16. May 2026, 14:15
+
+- **`AI_READ_INSTR` constant** — all AI read instructions in `nicetransfer.py` now derive from a single constant; changing it propagates everywhere automatically; static `.md` files must be updated manually (grep hint in DEVELOPMENT.md)
+- **Canonical formulation** — standardized to `fetch and read in full — do not truncate, summarize, stop early, or read partially`; all four negatives present at every AI-facing read instruction
+- **`nicetransfer-manual` meta tag** — new meta tag on every page points AI clients to the user manual with read instruction and context for when to fetch it
+- **`llms.txt` Concept section** — new section before "How to interact" explains what NiceTransfer does, the typical workflow, and when to use each section; manual reference now includes full URL with token
+- **Dynamic `llms-txt` for localhost** — localhost visitors get `llms-local.txt` in the meta tag; remote clients get `llms.txt`; consistent with server-side 403 enforcement
+- **`llms-local.txt` read instruction on line 1** — canonical warning now appears at the very top of `llms-local.txt`, before the dev section; previously it was buried after the header
+- **`llms-local.txt` step 1 simplified** — "run the curl command from the banner" replaces the confusing "extract the token" step (token is already in the banner command)
+- **`llms-local.txt` uses localhost URLs** — all HTTP endpoints in the server-only file now point to `127.0.0.1` instead of the network IP; `_llms_body(local=True)` parameter added
+- **Banner AI line first** — AI instruction line printed before the banner box; humans see the box as prominent last output; AI gets actionable instruction first in the text
+- **`\n` before AI line** — ensures clean separation from any preceding stdout output
+- **DEVELOPMENT.md: "read completely" rationale** — new section explains why these instructions exist, what each negative formulation prevents, the canonical form, the general rule for future development, and how to keep `.md` files in sync
+- **MANUAL.md: AI assistant guide** — new "Working with an AI assistant" section explains which phrases trigger correct behavior, what to avoid, and what the AI cannot do
+
 ## Smarter AI discovery — joko-zauberzeug, 16. May 2026, 02:58
 
 - **Banner fetch hint** — startup banner now says `↑ fetch llms+ and read completely before acting`; tells AI assistants exactly which URL to fetch and that truncating is not allowed
 - **Banner spacing** — blank line before the banner box prevents output from a previous command (e.g. shutdown response) from running into the border
 - **`llms-txt-instruction` meta tag** — new meta tag on every page instructs AI clients to fetch and read `llms-txt` completely, not truncate or summarize
 - **Dynamic `llms-txt` meta tag** — localhost visitors receive a link to `llms-local.txt` (full dev instructions); remote clients receive `llms.txt`; the server-side 403 restriction already existed, now discovery matches
+
+→ [ab046d7](https://github.com/joko-zauberzeug/nicetransfer/commit/ab046d78f69216fd6d2c5b6939f58fd6a1e0b0b7)
 
 ## llms.txt: protocol-aware hints, HTTPS groundwork, read-completely in line 1 — joko-zauberzeug, 16. May 2026, 02:03
 

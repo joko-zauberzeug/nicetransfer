@@ -198,6 +198,10 @@ LOCAL_IP   = get_local_ip()
 NO_NETWORK = LOCAL_IP == "127.0.0.1"
 ACCESS_URL = f"http://{LOCAL_IP}:{PORT}/?token={TOKEN}"
 
+# Canonical AI read instruction — used in meta tags, llms.txt, llms-local.txt, and banner.
+# When changing this, also update MANUAL.md and DEVELOPMENT.md manually (grep AI_READ_INSTR).
+AI_READ_INSTR = "fetch and read in full — do not truncate, summarize, stop early, or read partially"
+
 def hotspot_hint_md():
     if sys.platform == "darwin":
         return (
@@ -854,11 +858,13 @@ async def index(request: Request):
     ui.add_head_html(CSS)
     _llms_host = f'127.0.0.1:{PORT}' if local else f'{LOCAL_IP}:{PORT}'
     _llms_file = 'llms-local.txt' if local else 'llms.txt'
+    _doc_host  = f'127.0.0.1:{PORT}' if local else f'{LOCAL_IP}:{PORT}'
     ui.add_head_html(
         f'<meta name="mcp-server" content="http://{LOCAL_IP}:{PORT}/mcp?token={TOKEN}">\n'
         f'<meta name="mcp-server-card" content="http://{LOCAL_IP}:{PORT}/.well-known/mcp/server-card.json?token={TOKEN}">\n'
         f'<meta name="llms-txt" content="http://{_llms_host}/{_llms_file}?token={TOKEN}">\n'
-        f'<meta name="llms-txt-instruction" content="fetch and read completely before acting — do not truncate or summarize">'
+        f'<meta name="llms-txt-instruction" content="{AI_READ_INSTR} before acting">\n'
+        f'<meta name="nicetransfer-manual" content="http://{_doc_host}/manual.md?token={TOKEN} — user manual; {AI_READ_INSTR} — when asked how NiceTransfer works, how to use a feature, or for section explanations">'
     )
     is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
 
@@ -1526,14 +1532,15 @@ async def mcp_server_card():
         },
     })
 
-def _llms_body():
+def _llms_body(local: bool = False):
     import importlib.metadata as _im
     sections = [s for s, on in [("share",    state.share_enabled),
                                  ("upload",   state.upload_enabled),
                                  ("download", state.download_enabled)] if on]
     # TODO: derive scheme from config when HTTPS/selfcert support is added
     scheme   = "http"
-    base     = f"{scheme}://{LOCAL_IP}:{PORT}"
+    host     = f"127.0.0.1:{PORT}" if local else f"{LOCAL_IP}:{PORT}"
+    base     = f"{scheme}://{host}"
     base_t   = f"{base}?token={TOKEN}"
     mcp_url  = f"{base}/mcp?token={TOKEN}"
     llms_url = f"{base}/llms.txt?token={TOKEN}"
@@ -1547,9 +1554,17 @@ def _llms_body():
     # TODO: elif selfcert: protocol_note = "Protocol: HTTPS (self-signed). Use `curl -sk` — TLS verification will fail.\n"
     # TODO: else: protocol_note = "Protocol: HTTPS.\n"
     return (
-        f"# NiceTransfer v{VERSION} — read this file completely before acting. Do not truncate. If truncated: stop, re-fetch, read fully.\n"
+        f"# NiceTransfer v{VERSION} — read this file completely before acting. Do not truncate, summarize, stop early, or read partially. If truncated or incomplete: stop, re-fetch, read fully.\n"
         f"This file is for AI assistants. Endpoints are distributed throughout — truncating means missing endpoints.\n"
         f"Local file transfer hub. Transfer files between devices on the same Wi-Fi network via browser. Running on NiceGUI {ng_ver}.\n\n"
+
+        f"## Concept\n\n"
+        f"Start NiceTransfer on one device (the server). Other devices on the same Wi-Fi connect by scanning the QR code or opening the network URL — no install required on the client side.\n\n"
+        f"Sections control what connected devices can do:\n"
+        f"- 'share' — anyone can upload and download; for quick exchange between devices\n"
+        f"- 'upload' — clients can only send files to the server; for collecting files from others\n"
+        f"- 'download' — clients can only fetch files from the server; for distributing files\n\n"
+        f"Read {base}/manual.md?token={TOKEN} for full usage instructions, section details, and operator setup — {AI_READ_INSTR}.\n\n"
 
         f"## How to interact\n\n"
         f"Make HTTP requests with the token embedded as a query parameter. No MCP client required.\n"
@@ -1558,7 +1573,7 @@ def _llms_body():
         f"These endpoints are the complete interface — use them for all server operations.\n"
         f"Do not reach for shell commands, process management, or other means.\n"
         f"If an operation isn't listed here, ask before inventing an approach.\n"
-        f"Always read responses in full — do not truncate, limit lines, or stop early.\n\n"
+        f"Always {AI_READ_INSTR}.\n\n"  # 'Always' = general rule for all responses, not part of AI_READ_INSTR
 
         f"## Active sections\n\n"
         f"{', '.join(sections) if sections else 'none (all sections currently disabled)'}\n\n"
@@ -1667,13 +1682,17 @@ async def llms_local_txt(request: Request):
         return PlainTextResponse("Not available for external clients.\n", status_code=403)
     llms_local_url = f"http://127.0.0.1:{PORT}/llms-local.txt?token={TOKEN}"
     local_section = (
+        f"# NiceTransfer v{VERSION} — {AI_READ_INSTR}. If truncated or incomplete: stop, re-fetch, read fully.\n"
+        f"This file is for AI assistants. It contains development instructions followed by the full HTTP API.\n\n"
         f"## If the AI started NiceTransfer\n\n"
         f"The startup banner printed to stdout contains:\n\n"
         f"  mcp     : http://127.0.0.1:{PORT}/mcp?token=<token>\n"
         f"  llms    : http://127.0.0.1:{PORT}/llms.txt?token=<token>\n"
-        f"  llms+   : {llms_local_url}\n\n"
-        f"Extract the token from any of these URLs.\n"
-        f"Fetch llms-local.txt immediately after start to get full operating instructions.\n"
+        f"  llms+   : {llms_local_url}\n"
+        f"  ↑ fetch llms+ and read completely before acting\n\n"
+        f"Do this immediately and without being asked:\n"
+        f"1. Run the curl command from the banner above — {AI_READ_INSTR}.\n"
+        f"2. You are now ready to operate NiceTransfer. Proceed with the user's request.\n\n"
         f"Keep the token for the entire session — do not re-extract it on every step.\n"
         f"Never redirect startup output to /tmp or other world-readable files — the banner contains the token.\n\n"
         f"## Checking if NiceTransfer is already running\n\n"
@@ -1705,7 +1724,7 @@ async def llms_local_txt(request: Request):
         f"  143 (SIGTERM) — process was killed by pkill, it is gone\n"
         f"  144 (SIGURG)  — task manager timed out, NiceTransfer keeps running (Python ignores SIGURG)\n\n"
     )
-    return PlainTextResponse(local_section + _llms_body())
+    return PlainTextResponse(local_section + _llms_body(local=True))
 
 
 # ── 16. MCP server ───────────────────────────────────────────────────────────
@@ -1836,13 +1855,15 @@ _banner_lines = [
     f"mcp     : {_MCP_URL}",
     f"llms    : http://127.0.0.1:{PORT}/llms.txt?token={TOKEN}",
     f"llms+   : http://127.0.0.1:{PORT}/llms-local.txt?token={TOKEN}",
-    f"↑ fetch llms+ and read completely before acting",
     *([f"timeout : {TIMEOUT_MIN} min"] if TIMEOUT_MIN > 0 else []),
     None,
     "Scan QR code in browser · Ctrl+C to quit",
 ]
 _w = max(len(l) for l in _banner_lines if l is not None)
 _bar = "─" * (_w + 4)
+_ai_line = (f'AI: curl -s "http://127.0.0.1:{PORT}/llms-local.txt?token={TOKEN}" | cat'
+            f'  # for AI assistants: {AI_READ_INSTR}')
+print(f'\n{_ai_line}')
 print()
 print(f"┌{_bar}┐")
 for _l in _banner_lines:
@@ -1850,14 +1871,12 @@ for _l in _banner_lines:
         print(f"├{_bar}┤")
     else:
         print(f"│  {_l:<{_w}}  │")
-print(f"└{_bar}┘")
-print()
+print(f"└{_bar}┘\n")
 
 if NO_NETWORK:
     print("⚠  No network detected — other devices cannot connect.")
     print("   To create a hotspot:")
-    print(hotspot_hint_text())
-    print()
+    print(hotspot_hint_text() + '\n')
 
 _start_time     = _time.time()
 _timeout_active = TIMEOUT_MIN   # mutable; 0 = no timeout
