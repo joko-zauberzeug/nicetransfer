@@ -116,6 +116,7 @@ parser.add_argument("--no-upload",    action="store_true")
 parser.add_argument("--no-download",  action="store_true")
 parser.add_argument("--no-share",     action="store_true")
 parser.add_argument("--token",        type=str,  default=None)
+parser.add_argument("--ip",           type=str,  default=None, help="fixed IP for network URL and QR code (default: auto-detect)")
 parser.add_argument("--no-open",      action="store_true", help="do not open the browser on startup")
 ARGS = parser.parse_args()
 
@@ -145,6 +146,8 @@ else:
     PORT = _cfg_port
 _cfg_token  = cfg_str("server", "token", "auto")
 TOKEN       = ARGS.token or (secrets.token_urlsafe(12) if _cfg_token in ("", "auto") else _cfg_token)
+_cfg_ip     = ARGS.ip or cfg_str("server", "ip", "auto")
+FIXED_IP    = None if _cfg_ip in ("", "auto") else _cfg_ip
 TIMEOUT_MIN          = cfg_int("server",  "timeout",        0)   # 0 = no timeout
 VERSION              = "1.6"
 UPDATE_CHECK_ON_START = cfg_bool("updates", "check_on_start", False)
@@ -190,6 +193,11 @@ state = AppState()
 # ── 7. Helpers ────────────────────────────────────────────────────────────────
 
 def get_local_ip():
+    # NOTE: auto-detection follows the default route — on multi-homed hosts (VPN,
+    # Docker) that can pick an interface the clients cannot reach. FIXED_IP
+    # (config [server] ip / --ip) overrides it everywhere: banner, QR, llms.txt.
+    if FIXED_IP:
+        return FIXED_IP
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))

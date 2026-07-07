@@ -1,5 +1,9 @@
 # Changelog
 
+## Fixed IP for multi-homed hosts — joko-zauberzeug, 07. July 2026, 18:31
+
+- **`ip` setting + `--ip` flag** — on hosts with several network interfaces (VPN, Docker) the automatic IP detection follows the default route and can pick an address other devices cannot reach; the QR code then points nowhere (found by a v1.6 tester with an active VPN). `ip = "auto"` in `config.toml` keeps the old behavior; a fixed value overrides the address everywhere: banner, QR code, `llms.txt`, MCP status. Deliberately no smarter guessing — the server cannot know which network the clients are on, so unusual setups get an explicit switch instead
+
 ## v1.6 — Installation via uv — joko-zauberzeug, 07. July 2026, 16:15
 
 - **uv replaces venv + pip** — installation and startup now run through [uv](https://docs.astral.sh/uv/); fixes the unreliable `python -m venv` setup on macOS (`ensurepip` failures with brew Python) and removes the need for any preinstalled Python — uv downloads a suitable version automatically
@@ -19,6 +23,8 @@
 - **Theme storage hardened against NiceGUI prune race** — NiceGUI 3.14 prunes user storage of sessions without a live websocket client every 10 s; if the prune fires during a page build, `app.storage.user` raises and the page 500s (found via automated browser testing). Theme read/write now falls back to the config default instead of failing the page
 - **Systematic test procedure documented** — four-layer release test (fresh install, HTTP API, source-package loop, automated browser UI) written as a reusable guide in `llms-nicetransfer.md`, summarized in DEVELOPMENT.md
 - **Version 1.6** — in `nicetransfer.py` and `pyproject.toml`
+
+→ [d5b35ad](https://github.com/joko-zauberzeug/nicetransfer/commit/d5b35adc6c52e99891197a0dff2b998299112716)
 
 ## AI read instructions: canonical form, variable, consistency — joko-zauberzeug, 16. May 2026, 14:15
 

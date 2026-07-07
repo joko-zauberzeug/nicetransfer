@@ -125,6 +125,7 @@ share    = "/path/to/share-folder"
 port       = 0              # 0 = auto-assign from port_range; e.g. 7777 for a fixed port
 port_range = [7700, 7799]  # range used when port = 0
 token      = "auto"        # auto = randomly generated on each start; set own value = fixed
+ip         = "auto"        # auto = detect network IP; fixed value for multi-homed hosts (VPN, Docker)
 timeout    = 60            # minutes until auto-shutdown; 0 = run indefinitely
 
 [ui]
@@ -157,7 +158,10 @@ To customize colors and other visual details, edit `nicetransfer.css`.
 ./run.sh --no-share         # Disable Share section (overrides config)
 ./run.sh --port 8888        # Custom port
 ./run.sh --no-open          # Do not open the browser on startup
+./run.sh --ip 192.168.1.20  # Fixed IP for network URL and QR code
 ```
+
+**When to set a fixed IP:** On machines with several network interfaces (VPN active, Docker installed), the automatic detection follows the default route and may pick an address other devices cannot reach — the QR code then points nowhere. Set `ip` in `config.toml` (or use `--ip`) to the address of the network your other devices are on. The server always listens on all interfaces; this setting only controls which address is shown and encoded in the QR code.
 
 The default sections and theme are read from `config.toml`. Command-line flags always take precedence over the config file.
 

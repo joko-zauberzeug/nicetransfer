@@ -109,6 +109,9 @@ port       = 0
 port_range = [7700, 7799]
 # token: "auto" = randomly generated on each start; set own value = fixed
 token   = "auto"
+# ip: "auto" = detect the network IP for banner/QR code; set a fixed value
+# on multi-homed hosts (VPN, Docker) where detection picks the wrong interface
+ip      = "auto"
 # timeout in minutes; 0 = run indefinitely
 timeout = 60
 

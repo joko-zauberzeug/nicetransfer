@@ -10,6 +10,9 @@ share    = "~/nicetransfer/share"
 port  = 7777
 # token: leave empty = randomly generated on each start; set own value = fixed
 token = ""
+# ip: "auto" = detect the network IP for banner/QR code; set a fixed value
+# on multi-homed hosts (VPN, Docker) where detection picks the wrong interface
+ip    = "auto"
 
 [updates]
 # check for new NiceTransfer version on each startup (prints to terminal + UI notification)
