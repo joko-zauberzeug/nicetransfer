@@ -1,64 +1,96 @@
 #!/usr/bin/env bash
 # nicetransfer — installation script
-# Creates a venv, installs dependencies, and generates run.sh and config.toml
+# Ensures uv is available, installs Python + dependencies via uv,
+# and generates run.sh and config.toml
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_DIR="$SCRIPT_DIR/.venv"
 DATA_DIR="$SCRIPT_DIR/data"
 
 echo "nicetransfer — Installation"
 echo "Directory: $SCRIPT_DIR"
 echo
 
-# Check for python3
-if ! command -v python3 &> /dev/null; then
-    echo "✗ python3 not found."
-    echo "  Install with: brew install python3"
-    exit 1
+# ── uv ────────────────────────────────────────────────────────────────────────
+# uv (https://docs.astral.sh/uv/) manages Python and dependencies.
+# It downloads a suitable Python by itself — no preinstalled Python required.
+
+find_uv() {
+    command -v uv 2>/dev/null && return
+    for candidate in "$HOME/.local/bin/uv" "$HOME/.cargo/bin/uv"; do
+        [ -x "$candidate" ] && { echo "$candidate"; return; }
+    done
+    return 1
+}
+
+ask_yn() {
+    while true; do
+        printf "%s [Y/n] " "$1"
+        read -r _ans || return 1
+        case "$_ans" in
+            [Yy]|[Yy][Ee][Ss]|"") return 0 ;;
+            [Nn]|[Nn][Oo])        return 1 ;;
+        esac
+    done
+}
+
+UV="$(find_uv || true)"
+
+if [ -z "$UV" ]; then
+    echo "uv is required but not installed."
+    if command -v brew &> /dev/null; then
+        if ask_yn "→ Install uv via Homebrew (brew install uv)?"; then
+            brew install uv
+            UV="$(find_uv)"
+        fi
+    fi
+    if [ -z "$UV" ]; then
+        echo "  The official installer downloads uv from astral.sh into ~/.local/bin:"
+        echo "    curl -LsSf https://astral.sh/uv/install.sh | sh"
+        if ask_yn "→ Run the official uv installer now?"; then
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            UV="$(find_uv)"
+        fi
+    fi
+    if [ -z "$UV" ]; then
+        echo "✗ uv not installed. Install it manually and re-run ./install.sh:"
+        echo "    https://docs.astral.sh/uv/getting-started/installation/"
+        exit 1
+    fi
 fi
 
-PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-echo "✓ python3 found ($PYTHON_VERSION)"
+echo "✓ uv found ($("$UV" --version))"
 
-# Create venv if it doesn't exist
-if [ ! -d "$VENV_DIR" ]; then
-    echo "→ creating venv in .venv ..."
-    python3 -m venv "$VENV_DIR"
-    echo "✓ venv created"
-else
-    echo "✓ venv already exists"
-fi
+# ── Python + dependencies ─────────────────────────────────────────────────────
+# uv sync reads pyproject.toml, downloads a suitable Python if none is
+# installed, creates .venv, and installs all dependencies.
 
-# Upgrade pip
-echo "→ upgrading pip ..."
-"$VENV_DIR/bin/pip" install --quiet --upgrade pip
-
-# Install dependencies
-echo "→ installing nicegui ..."
-"$VENV_DIR/bin/pip" install --quiet nicegui
-
-echo "→ installing qrcode ..."
-"$VENV_DIR/bin/pip" install --quiet "qrcode[svg]"
-
+echo "→ installing Python + dependencies (uv sync) ..."
+"$UV" sync --project "$SCRIPT_DIR"
 echo "✓ dependencies installed"
 
-# Generate run.sh
+# ── run.sh ────────────────────────────────────────────────────────────────────
+
 cat > "$SCRIPT_DIR/run.sh" << 'EOF'
 #!/usr/bin/env bash
 # nicetransfer — start script
 # Usage: ./run.sh [--no-upload] [--no-download] [--port 8888]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/.venv/bin/activate"
-exec python3 "$SCRIPT_DIR/nicetransfer.py" "$@"
+UV="$(command -v uv || { [ -x "$HOME/.local/bin/uv" ] && echo "$HOME/.local/bin/uv"; } || { [ -x "$HOME/.cargo/bin/uv" ] && echo "$HOME/.cargo/bin/uv"; })"
+if [ -z "$UV" ]; then
+    echo "✗ uv not found — run ./install.sh first" >&2
+    exit 1
+fi
+exec "$UV" run --project "$SCRIPT_DIR" "$SCRIPT_DIR/nicetransfer.py" "$@"
 EOF
 
 chmod +x "$SCRIPT_DIR/run.sh"
 echo "✓ run.sh created"
 
-# Create config.toml if it doesn't exist
+# ── config.toml ───────────────────────────────────────────────────────────────
+
 CONFIG_FILE="$SCRIPT_DIR/config.toml"
 if [ ! -f "$CONFIG_FILE" ]; then
     cat > "$CONFIG_FILE" << EOF

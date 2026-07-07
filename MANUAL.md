@@ -93,9 +93,9 @@ The server is the computer running NiceTransfer. Run it on a local, trusted netw
 ### Requirements
 
 - macOS or Linux
-- Python 3.9+
+- [uv](https://docs.astral.sh/uv/) — `./install.sh` offers to install it if missing (via Homebrew or the official installer, after asking)
 
-All other dependencies (including NiceGUI) are installed automatically by `./install.sh`.
+No preinstalled Python required — uv downloads a suitable Python version and all dependencies (including NiceGUI) automatically.
 
 ### Installation
 
@@ -107,7 +107,7 @@ chmod +x install.sh
 ```
 
 The installer creates:
-- `.venv/` — isolated Python environment
+- `.venv/` — isolated Python environment (managed by uv)
 - `config.toml` — configuration file
 - `run.sh` — start script
 
@@ -156,6 +156,7 @@ To customize colors and other visual details, edit `nicetransfer.css`.
 ./run.sh --no-download      # Disable Download section (overrides config)
 ./run.sh --no-share         # Disable Share section (overrides config)
 ./run.sh --port 8888        # Custom port
+./run.sh --no-open          # Do not open the browser on startup
 ```
 
 The default sections and theme are read from `config.toml`. Command-line flags always take precedence over the config file.
@@ -310,11 +311,13 @@ All endpoints require `?token=TOKEN`. Key operations:
 
 | Endpoint | What it does |
 |----------|--------------|
-| `GET /files/{section}` | List files (section: share, upload, download, trash) |
+| `GET /status` | Server state: active sections, client permissions, auto-shutdown countdown |
+| `GET /files/{section}` | List files with download URLs (section: share, upload, download, trash) |
 | `POST /upload/{section}` | Upload a file (multipart/form-data, field: `file`) |
 | `GET /download/{section}/{filename}` | Download a file |
 | `DELETE /files/{section}/{filename}` | Move a file to trash |
 | `POST /restore/{trash_name}` | Restore a file from trash |
+| `DELETE /trash/{trash_name}` | Permanently delete a file from trash *(server only)* |
 | `POST /shutdown` | Shut down the server cleanly |
 | `POST /check-updates` | Check for NiceTransfer and NiceGUI updates |
 | `GET /manual.md` | This manual as plain text |

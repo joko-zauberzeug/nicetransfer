@@ -33,3 +33,5 @@ chmod +x install.sh
 ./install.sh
 ./run.sh
 ```
+
+Python and all dependencies are managed by [uv](https://docs.astral.sh/uv/) — no preinstalled Python required. If uv is missing, `install.sh` offers to install it (asks first).

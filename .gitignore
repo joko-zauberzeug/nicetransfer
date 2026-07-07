@@ -10,6 +10,10 @@ __pycache__/
 venv/
 env/
 
+# uv lockfile — deliberately not committed: dependencies resolve to the latest
+# matching versions at install time (same semantics as the old pip install)
+uv.lock
+
 # Generated at install time — run ./install.sh to create locally
 run.sh
 config.toml
@@ -18,6 +22,7 @@ config.toml
 data/upload/*
 data/download/*
 data/share/*
+data/trash/
 !data/upload/.gitkeep
 !data/download/.gitkeep
 !data/share/.gitkeep
@@ -26,6 +31,10 @@ data/share/*
 MCP.md
 PLATFORMS.md
 llms-ai-integration.md
+UV_MIGRATION_TASK.md
+
+# Claude Code local dev config
+.claude/
 
 # NiceGUI runtime cache
 .nicegui/

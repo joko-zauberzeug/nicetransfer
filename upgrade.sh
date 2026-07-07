@@ -8,6 +8,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV="$SCRIPT_DIR/.venv"
+UV="$(command -v uv || { [ -x "$HOME/.local/bin/uv" ] && echo "$HOME/.local/bin/uv"; } || { [ -x "$HOME/.cargo/bin/uv" ] && echo "$HOME/.cargo/bin/uv"; })"
 GITHUB_REPO="joko-zauberzeug/nicetransfer"
 API_BASE="https://api.github.com/repos/$GITHUB_REPO"
 RAW_BASE="https://raw.githubusercontent.com/$GITHUB_REPO"
@@ -118,8 +119,9 @@ echo "Latest version: v$LATEST_VERSION ($LATEST_REF)"
 
 # ── dependency versions ───────────────────────────────────────────────────────
 
-INSTALLED_NICEGUI=$("$VENV/bin/pip" show nicegui 2>/dev/null \
-    | grep '^Version:' | awk '{print $2}' || echo "unknown")
+# NOTE: uv-created venvs have no pip — query the version via python directly
+INSTALLED_NICEGUI=$("$VENV/bin/python" -c "import nicegui; print(nicegui.__version__)" \
+    2>/dev/null || echo "unknown")
 LATEST_NICEGUI=$(curl -sf "https://pypi.org/pypi/nicegui/json" 2>/dev/null \
     | python3 -c "import sys,json; print(json.load(sys.stdin)['info']['version'])" \
     2>/dev/null || echo "unknown")
@@ -185,7 +187,7 @@ else
         unzip -q "$TMP/nt.zip" -d "$TMP/src"
         EXTRACT_DIR=$(find "$TMP/src" -maxdepth 1 -mindepth 1 -type d | head -1)
 
-        UPDATE_FILES=(nicetransfer.py nicetransfer.css install.sh upgrade.sh
+        UPDATE_FILES=(nicetransfer.py nicetransfer.css pyproject.toml install.sh upgrade.sh
                       MANUAL.md CHANGELOG.md README.md LICENSE)
 
         for f in "${UPDATE_FILES[@]}"; do
@@ -221,15 +223,33 @@ else
         fi
     fi
 
-    # ── run.sh ────────────────────────────────────────────────────────────────
+    # ── dependencies after source update ─────────────────────────────────────
+    # pyproject.toml may have changed — sync the environment
 
-    EXPECTED_RUN="$(cat <<RUNEOF
+    if [ -n "$UV" ]; then
+        echo ""
+        echo "→ syncing dependencies (uv sync) ..."
+        "$UV" sync --project "$SCRIPT_DIR"
+        echo "✓ dependencies synced"
+    else
+        echo "⚠  uv not found — skipping dependency sync (run ./install.sh)"
+    fi
+
+    # ── run.sh ────────────────────────────────────────────────────────────────
+    # NOTE: must match the template in install.sh byte for byte
+
+    EXPECTED_RUN="$(cat <<'RUNEOF'
 #!/usr/bin/env bash
 # nicetransfer — start script
 # Usage: ./run.sh [--no-upload] [--no-download] [--port 8888]
 
-source "$VENV/bin/activate"
-python3 "$SCRIPT_DIR/nicetransfer.py" "\$@"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UV="$(command -v uv || { [ -x "$HOME/.local/bin/uv" ] && echo "$HOME/.local/bin/uv"; } || { [ -x "$HOME/.cargo/bin/uv" ] && echo "$HOME/.cargo/bin/uv"; })"
+if [ -z "$UV" ]; then
+    echo "✗ uv not found — run ./install.sh first" >&2
+    exit 1
+fi
+exec "$UV" run --project "$SCRIPT_DIR" "$SCRIPT_DIR/nicetransfer.py" "$@"
 RUNEOF
 )"
 
@@ -274,8 +294,12 @@ if [ "$INSTALLED_NICEGUI" != "$LATEST_NICEGUI" ] && [ "$LATEST_NICEGUI" != "unkn
     echo "     Upgrading may introduce incompatibilities."
     echo ""
     if ask_yn "  Upgrade nicegui to $LATEST_NICEGUI?"; then
-        "$VENV/bin/pip" install --quiet --upgrade nicegui
-        echo "  ✓ nicegui upgraded to $LATEST_NICEGUI"
+        if [ -n "$UV" ]; then
+            "$UV" sync --project "$SCRIPT_DIR" --upgrade-package nicegui --quiet
+            echo "  ✓ nicegui upgraded to $LATEST_NICEGUI"
+        else
+            echo "  ✗ uv not found — run ./install.sh first"
+        fi
     else
         echo "    dependency upgrade skipped"
     fi

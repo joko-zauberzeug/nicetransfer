@@ -1,0 +1,16 @@
+# nicetransfer — project metadata for uv
+# No build system on purpose: uv treats this as a "virtual" project and only
+# installs the dependencies into .venv (uv sync). nicetransfer.py stays a
+# plain single-file script.
+
+[project]
+name = "nicetransfer"
+version = "1.6"  # keep in sync with VERSION in nicetransfer.py (bumped only at releases)
+description = "Nice and simple local file transfer via browser"
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.11"
+dependencies = [
+    "nicegui>=3.12.0",
+    "qrcode>=8.0",  # SVG support is built in since 8.x — no [svg] extra anymore
+    "mcp>=1.0",
+]

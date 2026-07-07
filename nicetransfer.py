@@ -6,7 +6,7 @@ nicetransfer — local file transfer via browser
 NiceGUI 3.x
 """
 
-import sys, subprocess, importlib, socket, secrets, argparse, webbrowser, threading, base64, zipfile, io, json as _json, asyncio, os, signal, atexit
+import sys, subprocess, importlib, socket, secrets, argparse, webbrowser, threading, base64, zipfile, io, json as _json, asyncio, os, signal, atexit, contextlib
 from pathlib import Path
 from datetime import datetime
 import time as _time
@@ -21,26 +21,16 @@ def _pkg_installed(name):
     except ImportError:
         return False
 
-def _install(spec):
-    print(f"  → installing {spec} ...")
-    r = subprocess.run([sys.executable, "-m", "pip", "install", spec, "--quiet"],
-                       capture_output=True, text=True)
-    if r.returncode != 0:
-        print(f"  ✗ Error:\n{r.stderr}")
-        print("  Tip: run ./run.sh (activates venv)")
-        sys.exit(1)
-    print(f"  ✓ {spec}")
-
 def check_deps():
-    needed = []
-    if not _pkg_installed("nicegui"): needed.append("nicegui")
-    if not _pkg_installed("qrcode"):  needed.append("qrcode[svg]")
-    if not _pkg_installed("mcp"):     needed.append("mcp")
-    if sys.version_info < (3,11) and not _pkg_installed("tomli"): needed.append("tomli")
-    if needed:
-        print("nicetransfer: installing missing dependencies:")
-        for p in needed: _install(p)
-        print()
+    # NOTE: no auto-install here — dependencies are managed by uv (see pyproject.toml).
+    # This check only catches starts with a bare Python outside the uv environment.
+    missing = [spec for spec, mod in [("nicegui", "nicegui"), ("qrcode", "qrcode"), ("mcp", "mcp")]
+               if not _pkg_installed(mod)]
+    if missing:
+        print(f"nicetransfer: missing dependencies: {', '.join(missing)}")
+        print("  Start via ./run.sh — or directly:  uv run nicetransfer.py")
+        print("  First-time setup: ./install.sh")
+        sys.exit(1)
 
 check_deps()
 
@@ -101,6 +91,19 @@ def cfg_theme():
     t = cfg.get("ui", {}).get("theme", "auto").lower()
     return {"dark": True, "light": False}.get(t, None)  # None = auto
 
+def user_theme():
+    # NOTE: app.storage.user can transiently fail for sessions without a live websocket
+    # client — NiceGUI prunes clientless user storage every 10 s, racing the page build
+    # (observed with NiceGUI 3.14). A missing theme preference must never 500 the page.
+    try:
+        return app.storage.user.get('theme', cfg_theme())
+    except Exception:
+        return cfg_theme()
+
+def store_user_theme(value):
+    with contextlib.suppress(Exception):  # see user_theme()
+        app.storage.user['theme'] = value
+
 
 # ── 5. CLI ────────────────────────────────────────────────────────────────────
 
@@ -113,6 +116,7 @@ parser.add_argument("--no-upload",    action="store_true")
 parser.add_argument("--no-download",  action="store_true")
 parser.add_argument("--no-share",     action="store_true")
 parser.add_argument("--token",        type=str,  default=None)
+parser.add_argument("--no-open",      action="store_true", help="do not open the browser on startup")
 ARGS = parser.parse_args()
 
 DATA = SCRIPT_DIR / "data"
@@ -142,7 +146,7 @@ else:
 _cfg_token  = cfg_str("server", "token", "auto")
 TOKEN       = ARGS.token or (secrets.token_urlsafe(12) if _cfg_token in ("", "auto") else _cfg_token)
 TIMEOUT_MIN          = cfg_int("server",  "timeout",        0)   # 0 = no timeout
-VERSION              = "1.5"
+VERSION              = "1.6"
 UPDATE_CHECK_ON_START = cfg_bool("updates", "check_on_start", False)
 NOTIFY_DEPS          = cfg_bool("updates", "notify_deps",     False)
 UPDATE_CHANNEL       = cfg_str("updates",  "channel",         "stable")
@@ -793,7 +797,7 @@ def build_header(is_dark, section_links=None, current="", is_local=False):
                 is_dark.set_value(False); theme_btn.props("icon=light_mode")
             else:
                 is_dark.set_value(True); theme_btn.props("icon=dark_mode")
-            app.storage.user['theme'] = is_dark.value
+            store_user_theme(is_dark.value)
 
         theme_btn.on("click", toggle_theme)
 
@@ -866,7 +870,7 @@ async def index(request: Request):
         f'<meta name="llms-txt-instruction" content="{AI_READ_INSTR} before acting">\n'
         f'<meta name="nicetransfer-manual" content="http://{_doc_host}/manual.md?token={TOKEN} — user manual; {AI_READ_INSTR} — when asked how NiceTransfer works, how to use a feature, or for section explanations">'
     )
-    is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
+    is_dark = ui.dark_mode(value=user_theme())
 
     # Build header — local gets Connection + Control tabs in addition to file sections
     _section_links = []
@@ -1196,7 +1200,7 @@ async def index(request: Request):
 @ui.page("/manual")
 async def manual_page(request: Request):
     ui.add_head_html(CSS)
-    is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
+    is_dark = ui.dark_mode(value=user_theme())
     build_header(is_dark, current="manual", is_local=is_local(request))
     md_file = SCRIPT_DIR / "MANUAL.md"
     content = md_file.read_text() if md_file.exists() else "_MANUAL.md not found._"
@@ -1208,7 +1212,7 @@ async def manual_page(request: Request):
 @ui.page("/changelog")
 async def changelog_page(request: Request):
     ui.add_head_html(CSS)
-    is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
+    is_dark = ui.dark_mode(value=user_theme())
     build_header(is_dark, current="changelog", is_local=is_local(request))
     md_file = SCRIPT_DIR / "CHANGELOG.md"
     if md_file.exists():
@@ -1232,7 +1236,7 @@ async def development_page(request: Request):
         ui.navigate.to(f"/?token={TOKEN}")
         return
     ui.add_head_html(CSS)
-    is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
+    is_dark = ui.dark_mode(value=user_theme())
     build_header(is_dark, current="development", is_local=is_local(request))
     md_file = SCRIPT_DIR / "DEVELOPMENT.md"
     with ui.column().classes("w-full q-pa-md").style("max-width: 860px; margin: 0 auto"):
@@ -1257,7 +1261,7 @@ def build_footer():
 @ui.page("/get")
 async def get_page(request: Request):
     ui.add_head_html(CSS)
-    is_dark = ui.dark_mode(value=app.storage.user.get('theme', cfg_theme()))
+    is_dark = ui.dark_mode(value=user_theme())
     build_header(is_dark, current="get", is_local=is_local(request))
     with ui.column().classes("w-full q-pa-md").style("max-width: 860px; margin: 0 auto; gap: 1rem"):
 
@@ -1266,7 +1270,7 @@ async def get_page(request: Request):
             with ui.row().classes("items-center justify-between w-full q-mt-sm"):
                 with ui.column().classes("gap-1"):
                     ui.label(f"NiceTransfer v{VERSION}").classes("text-h6")
-                    ui.label("Requires Python 3.9+ · run install.sh to set up") \
+                    ui.label("Requires uv (install.sh offers to install it) · Python is managed automatically") \
                         .classes("text-caption nt-text-secondary")
                 ui.button('Download source', icon='download') \
                     .props(f'href="/download/source?token={TOKEN}" tag=a unelevated color=primary')
@@ -1274,7 +1278,7 @@ async def get_page(request: Request):
             ui.label(
                 "The source package contains all files needed to install and run NiceTransfer. "
                 "Served directly from this device — no internet required to download. "
-                "Includes nicetransfer.py, install.sh, the manual, changelog, development notes, AI guides, and LICENSE."
+                "Includes nicetransfer.py, pyproject.toml, install.sh, the manual, changelog, development notes, AI guides, and LICENSE."
             ).classes("text-body2 nt-text-secondary")
 
         with ui.card().classes("w-full q-pa-md"):
@@ -1323,7 +1327,7 @@ async def get_page(request: Request):
 
 # ── 14. Download & Preview routes ─────────────────────────────────────────────
 
-_SOURCE_FILES = ["nicetransfer.py", "nicetransfer.css", "install.sh",
+_SOURCE_FILES = ["nicetransfer.py", "nicetransfer.css", "pyproject.toml", "install.sh", "upgrade.sh",
                  "MANUAL.md", "CHANGELOG.md", "DEVELOPMENT.md",
                  "llms.md", "llms-nicetransfer.md", "CLAUDE.md",
                  "LICENSE", "README.md"]
@@ -1384,6 +1388,36 @@ async def http_check_updates(request: Request):
     return JSONResponse(result)
 
 
+@app.get("/status")
+async def http_status(request: Request):
+    """Current server state: version, active sections, effective permissions for this client."""
+    import importlib.metadata as _im
+    local = is_local(request)
+    remaining = None
+    if _timeout_active > 0:
+        remaining = max(0, round(_timeout_active - (_time.time() - _start_time) / 60))
+    return JSONResponse({
+        "version":  VERSION,
+        "nicegui":  _im.version("nicegui"),
+        "local":    local,
+        "sections": {
+            "share":    state.share_enabled,
+            "upload":   state.upload_enabled,
+            "download": state.download_enabled,
+        },
+        # NOTE: effective permissions for this requester (local clients may do everything)
+        "permissions": {
+            "delete_share":    local or state.client_delete_share,
+            "delete_upload":   local or state.client_delete_upload,
+            "delete_download": local or state.client_delete_download,
+            "trash_visible":   local or state.client_trash_visible,
+            "trash_restore":   local or state.client_trash_restore,
+            "shutdown":        local or state.client_shutdown,
+        },
+        "timeout_minutes_remaining": remaining,  # null = runs indefinitely
+    })
+
+
 @app.get("/files/{section}")
 async def http_list_files(section: str, request: Request):
     """List files in a section. Trash requires client_trash_visible permission."""
@@ -1406,7 +1440,12 @@ async def http_list_files(section: str, request: Request):
     if not enabled:
         return JSONResponse({"error": f"Section '{section}' is disabled"}, status_code=404)
     entries = file_entries(directory)
-    return JSONResponse([{"name": e["name"], "size": e["size"], "modified": e["time"]} for e in entries])
+    from urllib.parse import quote
+    base = f"{request.url.scheme}://{request.url.netloc}"
+    return JSONResponse([{
+        "name": e["name"], "size": e["size"], "modified": e["time"],
+        "url":  f"{base}/download/{section}/{quote(e['name'])}?token={TOKEN}",
+    } for e in entries])
 
 
 @app.post("/upload/{section}")
@@ -1460,6 +1499,23 @@ async def http_delete_file(section: str, filename: str, request: Request):
         return JSONResponse({"error": f"File not found: {filename!r}"}, status_code=404)
     trash_path = move_to_trash(file_path, directory.name)
     return JSONResponse({"trashed_as": trash_path.name})
+
+
+@app.delete("/trash/{trash_name}")
+async def http_purge_trash(trash_name: str, request: Request):
+    """Permanently delete a file from trash. Server device only — mirrors the GUI permission (can_empty=local)."""
+    if not is_local(request):
+        return Response(status_code=403)
+    file_path = TRASH_DIR / trash_name
+    try:
+        file_path.resolve().relative_to(TRASH_DIR.resolve())
+    except ValueError:
+        return JSONResponse({"error": "Invalid filename"}, status_code=400)
+    if not file_path.exists() or not file_path.is_file():
+        return JSONResponse({"error": f"File not found: {trash_name!r}"}, status_code=404)
+    file_path.unlink()
+    (TRASH_DIR / f"{trash_name}.meta").unlink(missing_ok=True)
+    return JSONResponse({"status": "deleted"})
 
 
 @app.post("/restore/{trash_name}")
@@ -1577,14 +1633,26 @@ def _llms_body(local: bool = False):
 
         f"## Active sections\n\n"
         f"{', '.join(sections) if sections else 'none (all sections currently disabled)'}\n\n"
-        f"Sections: 'share' (bidirectional), 'upload' (receive only), 'download' (serve only).\n\n"
+        f"Sections: 'share' (bidirectional), 'upload' (receive only), 'download' (serve only).\n"
+        f"The operator can toggle sections and permissions at runtime — this list is a snapshot.\n"
+        f"If an operation unexpectedly returns 404 or 403, check GET /status for the current state.\n\n"
 
         f"## HTTP endpoints\n\n"
+        f"### Server status\n\n"
+        f"  GET  {base}/status?token={TOKEN}\n"
+        f"    Current server state: version, active sections, effective permissions\n"
+        f"    for this client, minutes until auto-shutdown (null = runs indefinitely).\n"
+        f"    Cheap and always available — check here when an operation returns 404/403\n"
+        f"    or before a longer series of operations.\n"
+        f"    Returns: {{\"version\", \"nicegui\", \"local\", \"sections\", \"permissions\",\n"
+        f"              \"timeout_minutes_remaining\"}}\n\n"
         f"### File listing\n\n"
         f"  GET  {base}/files/{{section}}?token={TOKEN}\n"
         f"    List files in a section. section: share | upload | download | trash\n"
         f"    Trash requires client_trash_visible permission for remote clients.\n"
-        f"    Returns: list of {{name, size, modified}} (trash also has original_name, source)\n\n"
+        f"    Returns: list of {{name, size, modified, url}}\n"
+        f"    url is the ready-to-use download link (token included) — prefer it over\n"
+        f"    constructing URLs. Trash entries have original_name and source instead of url.\n\n"
 
         f"### File upload\n\n"
         f"  POST {base}/upload/{{section}}?token={TOKEN}\n"
@@ -1615,6 +1683,10 @@ def _llms_body(local: bool = False):
         f"    Restore a file from trash. trash_name is the timestamped name from /files/trash.\n"
         f"    Requires client_trash_restore permission for remote clients (default off).\n"
         f"    Returns: {{\"status\": \"restored\"}}\n\n"
+        f"  DELETE {base}/trash/{{trash_name}}?token={TOKEN}\n"
+        f"    Permanently delete a file from trash — no undo. Server device only (403 for\n"
+        f"    remote clients). trash_name is the timestamped name from /files/trash.\n"
+        f"    Returns: {{\"status\": \"deleted\"}}\n\n"
 
         f"### Server control (server device only — 403 for remote clients)\n\n"
         f"  POST {base}/shutdown?token={TOKEN}\n"
@@ -1720,8 +1792,8 @@ async def llms_local_txt(request: Request):
         f"  bash {SCRIPT_DIR}/run.sh\n\n"
         f"Do not use a fixed sleep — wait for the process to actually exit.\n"
         f"Expected exit codes on the previous background task:\n"
-        f"  0   — clean shutdown (HTTP endpoint, Ctrl+C, or timeout)\n"
-        f"  143 (SIGTERM) — process was killed by pkill, it is gone\n"
+        f"  0   — clean shutdown (HTTP endpoint or Ctrl+C)\n"
+        f"  143 (SIGTERM) — killed by pkill, or the auto-shutdown timeout fired; it is gone\n"
         f"  144 (SIGURG)  — task manager timed out, NiceTransfer keeps running (Python ignores SIGURG)\n\n"
     )
     return PlainTextResponse(local_section + _llms_body(local=True))
@@ -1972,8 +2044,9 @@ async def _check_updates(force: bool = False):
 if UPDATE_CHECK_ON_START or NOTIFY_DEPS:
     app.on_startup(lambda: background_tasks.create(_check_updates()))
 
-app.on_startup(lambda: threading.Timer(
-    1.5, lambda: webbrowser.open(f"http://localhost:{PORT}/?token={TOKEN}")).start())
+if not ARGS.no_open:
+    app.on_startup(lambda: threading.Timer(
+        1.5, lambda: webbrowser.open(f"http://localhost:{PORT}/?token={TOKEN}")).start())
 
 PID_FILE.write_text(f"pid={os.getpid()}\nport={PORT}\n")
 atexit.register(lambda: PID_FILE.unlink(missing_ok=True))

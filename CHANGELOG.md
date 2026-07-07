@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.6 — Installation via uv — joko-zauberzeug, 07. July 2026, 16:15
+
+- **uv replaces venv + pip** — installation and startup now run through [uv](https://docs.astral.sh/uv/); fixes the unreliable `python -m venv` setup on macOS (`ensurepip` failures with brew Python) and removes the need for any preinstalled Python — uv downloads a suitable version automatically
+- **`pyproject.toml`** — all dependencies (nicegui, qrcode[svg], mcp) are now declared in one place; `mcp` was previously missing from `install.sh` and only installed by the runtime check; `requires-python >= 3.11`
+- **`install.sh` rewritten** — checks for uv and offers to install it if missing (Homebrew preferred, official installer as fallback, always asks first); `uv sync` replaces the Python-detection loop and manual venv/pip handling; `config.toml` generation unchanged
+- **`run.sh` starts via `uv run`** — self-locating as before; falls back to `~/.local/bin/uv` and `~/.cargo/bin/uv` when uv is not on the PATH
+- **`upgrade.sh` on uv** — nicegui version check reads from `.venv/bin/python` (uv venvs have no pip); dependency upgrade via `uv sync --upgrade-package`; syncs dependencies after source updates; `EXPECTED_RUN` template now matches the install.sh template byte for byte (previously diverged); `pyproject.toml` added to the standalone-update file list
+- **Runtime dependency check is now a hint** — `nicetransfer.py` no longer pip-installs missing packages into a foreign environment; it prints how to start correctly (`./run.sh` or `uv run nicetransfer.py`) and exits
+- **`qrcode` without `[svg]` extra** — the extra no longer exists in qrcode 8.x (SVG support is built in); declaring it only produced a resolver warning
+- **Source package now complete** — `pyproject.toml` and `upgrade.sh` added to the `/download/source` ZIP; previously a standalone install from the source package could not self-upgrade
+- **Exit-code documentation corrected** — `llms-local.txt` claimed the auto-shutdown timeout exits with 0; it exits with 143 (SIGTERM failsafe)
+- **Docs updated** — README, MANUAL (requirements: uv instead of Python 3.9+), DEVELOPMENT (file table), llms-nicetransfer.md (architecture)
+- **`GET /status` endpoint** — current server state for AI clients: version, active sections, effective permissions for the requester, minutes until auto-shutdown; sections can be toggled at runtime, so the snapshot in `llms.txt` is no longer the only source
+- **Download URLs in `/files` responses** — each entry now includes a ready-to-use `url` (token embedded, host taken from the request); AI clients no longer need to construct download links themselves
+- **`DELETE /trash/{trash_name}` endpoint** — permanently delete a file from trash via HTTP; mirrors the GUI permission exactly (server device only); closes the last feature-parity gap between GUI and HTTP interface
+- **`--no-open` flag** — suppresses the automatic browser tab on startup; useful for headless/AI-driven starts and automated testing
+- **Theme storage hardened against NiceGUI prune race** — NiceGUI 3.14 prunes user storage of sessions without a live websocket client every 10 s; if the prune fires during a page build, `app.storage.user` raises and the page 500s (found via automated browser testing). Theme read/write now falls back to the config default instead of failing the page
+- **Systematic test procedure documented** — four-layer release test (fresh install, HTTP API, source-package loop, automated browser UI) written as a reusable guide in `llms-nicetransfer.md`, summarized in DEVELOPMENT.md
+- **Version 1.6** — in `nicetransfer.py` and `pyproject.toml`
+
 ## AI read instructions: canonical form, variable, consistency — joko-zauberzeug, 16. May 2026, 14:15
 
 - **`AI_READ_INSTR` constant** — all AI read instructions in `nicetransfer.py` now derive from a single constant; changing it propagates everywhere automatically; static `.md` files must be updated manually (grep hint in DEVELOPMENT.md)
@@ -14,6 +34,8 @@
 - **`\n` before AI line** — ensures clean separation from any preceding stdout output
 - **DEVELOPMENT.md: "read completely" rationale** — new section explains why these instructions exist, what each negative formulation prevents, the canonical form, the general rule for future development, and how to keep `.md` files in sync
 - **MANUAL.md: AI assistant guide** — new "Working with an AI assistant" section explains which phrases trigger correct behavior, what to avoid, and what the AI cannot do
+
+→ [91e107c](https://github.com/joko-zauberzeug/nicetransfer/commit/91e107cd712dda910ddb73b5d335e5f5dad9dc19)
 
 ## Smarter AI discovery — joko-zauberzeug, 16. May 2026, 02:58
 
