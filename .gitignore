@@ -17,6 +17,7 @@ uv.lock
 # Generated at install time — run ./install.sh to create locally
 run.sh
 config.toml
+NiceTransfer.app/
 
 # Transfer data — never commit actual files
 data/upload/*

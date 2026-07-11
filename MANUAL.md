@@ -165,6 +165,30 @@ To customize colors and other visual details, edit `nicetransfer.css`.
 
 The default sections and theme are read from `config.toml`. Command-line flags always take precedence over the config file.
 
+### App launcher (start without a terminal)
+
+`./install.sh` offers to create a launcher so NiceTransfer starts like a normal app — no terminal window, the browser opens automatically.
+
+**macOS — `NiceTransfer.app`** (created in the project folder):
+
+1. Optional: move or copy the app wherever you like, e.g. into `/Applications` (drag it there in Finder). It also works straight from the project folder.
+2. **Pin to Dock:** drag `NiceTransfer.app` from Finder onto the Dock (left of the separator, next to the other apps). Note: the launcher runs invisibly — NiceTransfer never appears as a *running* app in the Dock, so pinning must happen via drag from Finder, not via right-click on a running icon.
+3. From then on: one click starts the server and opens the browser.
+
+The app is created locally on your machine, so macOS Gatekeeper shows no warnings — no signing needed.
+
+**Linux — `nicetransfer.desktop`** (installed to `~/.local/share/applications/`):
+
+1. NiceTransfer appears in the application menu / app grid (GNOME, KDE, …). If it doesn't show up immediately, log out and back in — or run `update-desktop-database ~/.local/share/applications` where available.
+2. **Pin to taskbar/dash:** find NiceTransfer in the app grid, right-click → *Add to Favorites* (GNOME) or *Pin to Task Manager* (KDE).
+
+**Both platforms:**
+
+- **macOS may ask for folder access on the first launcher start** ("uv would like to access files in your Documents folder") — this appears when your configured directories point into `Documents`, `Desktop`, or `Downloads`, which macOS protects per app. Allow once, or point the `[dirs]` in `config.toml` somewhere unprotected (e.g. inside the project folder). Terminal starts don't show this because the terminal app already holds the permission.
+- Stop a launcher-started server via the web UI (Control panel) or the configured timeout — there is no terminal to Ctrl+C.
+- If clicking the launcher seems to do nothing, NiceTransfer is most likely already running (only one instance per project folder) — check your browser or `http://127.0.0.1:<port>`.
+- The launchers contain absolute paths: after moving or renaming the **project folder**, re-run `./install.sh` to regenerate them (moving the `.app` itself is fine).
+
 ### Stopping
 
 **Ctrl+C** in the terminal where `./run.sh` is running triggers a clean shutdown — NiceGUI lifecycle is respected, no warnings.

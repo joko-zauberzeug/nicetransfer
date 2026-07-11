@@ -1335,7 +1335,7 @@ async def get_page(request: Request):
 
 # ── 14. Download & Preview routes ─────────────────────────────────────────────
 
-_SOURCE_FILES = ["nicetransfer.py", "nicetransfer.css", "pyproject.toml", "install.sh", "upgrade.sh",
+_SOURCE_FILES = ["nicetransfer.py", "nicetransfer.css", "icon.svg", "icon.icns", "pyproject.toml", "install.sh", "upgrade.sh",
                  "MANUAL.md", "CHANGELOG.md", "DEVELOPMENT.md",
                  "llms.md", "llms-nicetransfer.md", "CLAUDE.md",
                  "LICENSE", "README.md"]

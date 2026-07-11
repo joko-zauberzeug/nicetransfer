@@ -244,7 +244,12 @@ else
 # Usage: ./run.sh [--no-upload] [--no-download] [--port 8888]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-UV="$(command -v uv || { [ -x "$HOME/.local/bin/uv" ] && echo "$HOME/.local/bin/uv"; } || { [ -x "$HOME/.cargo/bin/uv" ] && echo "$HOME/.cargo/bin/uv"; })"
+# NOTE: Dock/launcher starts get a minimal PATH without homebrew — check known uv locations explicitly
+UV="$(command -v uv)" \
+    || { [ -x "$HOME/.local/bin/uv" ]    && UV="$HOME/.local/bin/uv"; }    \
+    || { [ -x "$HOME/.cargo/bin/uv" ]    && UV="$HOME/.cargo/bin/uv"; }    \
+    || { [ -x /opt/homebrew/bin/uv ]     && UV=/opt/homebrew/bin/uv; }     \
+    || { [ -x /usr/local/bin/uv ]        && UV=/usr/local/bin/uv; }
 if [ -z "$UV" ]; then
     echo "✗ uv not found — run ./install.sh first" >&2
     exit 1

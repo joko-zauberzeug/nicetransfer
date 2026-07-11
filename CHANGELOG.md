@@ -1,8 +1,17 @@
 # Changelog
 
+## App launchers for macOS and Linux — joko-zauberzeug, 12. July 2026, 00:27
+
+- **Start without a terminal** — `install.sh` now offers to create a launcher: `NiceTransfer.app` on macOS (Dock, `/Applications`), `nicetransfer.desktop` on Linux (application menu, taskbar). One click starts the server, the browser opens automatically; stop via the web UI or timeout. Terminal starts keep working as before
+- **No Gatekeeper hassle** — the .app bundle is generated locally by install.sh, so macOS quarantine never applies; no signing or notarization needed
+- **`icon.svg` + `icon.icns`** — new app icon (folder + transfer arrows in the brand orange); the .icns gives the macOS bundle a proper Dock icon, the .svg is used by the Linux launcher; both included in the source package
+- **run.sh finds uv from Dock launches** — apps started from the Dock get a minimal PATH without homebrew; the uv lookup now also checks `/opt/homebrew/bin` and `/usr/local/bin` explicitly (found when the first Dock click silently did nothing)
+
 ## Fixed IP for multi-homed hosts — joko-zauberzeug, 07. July 2026, 18:31
 
 - **`ip` setting + `--ip` flag** — on hosts with several network interfaces (VPN, Docker) the automatic IP detection follows the default route and can pick an address other devices cannot reach; the QR code then points nowhere (found by a v1.6 tester with an active VPN). `ip = "auto"` in `config.toml` keeps the old behavior; a fixed value overrides the address everywhere: banner, QR code, `llms.txt`, MCP status. Deliberately no smarter guessing — the server cannot know which network the clients are on, so unusual setups get an explicit switch instead
+
+→ [4aae68d](https://github.com/joko-zauberzeug/nicetransfer/commit/4aae68dad0377c1bb9979fcc790b11ccb0227bfb)
 
 ## v1.6 — Installation via uv — joko-zauberzeug, 07. July 2026, 16:15
 
