@@ -1,11 +1,19 @@
 # Changelog
 
+## v1.7 — NiceGUI 4.0 — joko-zauberzeug, 09. November 2026, 16:00
+
+- **Minimum NiceGUI version raised to 4.0** — `pyproject.toml` now requires `nicegui>=4.0` so every installation runs on the same major version (smaller memory footprint per client, updated Quasar 2.35). No code changes were needed: none of the APIs removed in 4.0 are used, and the silent behavior changes (cleared inputs hold `''` instead of `None`, DOM IDs `ng-<id>`, Quasar 2.35) were checked against the code; the search fields only feed the table filter, where `''` and `None` behave the same
+- **Release v1.7** — version bump for the new major dependency; also ships the app launchers for macOS/Linux and the fixed-IP setting (`ip` / `--ip`) from the two entries below
+- **Tested** — full HTTP roundtrip (status, upload, list, download, trash, restore, purge, update check, shutdown) and browser UI on NiceGUI 4.0.0
+
 ## App launchers for macOS and Linux — joko-zauberzeug, 12. July 2026, 00:27
 
 - **Start without a terminal** — `install.sh` now offers to create a launcher: `NiceTransfer.app` on macOS (Dock, `/Applications`), `nicetransfer.desktop` on Linux (application menu, taskbar). One click starts the server, the browser opens automatically; stop via the web UI or timeout. Terminal starts keep working as before
 - **No Gatekeeper hassle** — the .app bundle is generated locally by install.sh, so macOS quarantine never applies; no signing or notarization needed
 - **`icon.svg` + `icon.icns`** — new app icon (folder + transfer arrows in the brand orange); the .icns gives the macOS bundle a proper Dock icon, the .svg is used by the Linux launcher; both included in the source package
 - **run.sh finds uv from Dock launches** — apps started from the Dock get a minimal PATH without homebrew; the uv lookup now also checks `/opt/homebrew/bin` and `/usr/local/bin` explicitly (found when the first Dock click silently did nothing)
+
+→ [7cf69c9](https://github.com/joko-zauberzeug/nicetransfer/commit/7cf69c9f9735b4f47ef33c2694f067670c6b44b9)
 
 ## Fixed IP for multi-homed hosts — joko-zauberzeug, 07. July 2026, 18:31
 

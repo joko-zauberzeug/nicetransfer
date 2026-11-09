@@ -149,7 +149,7 @@ TOKEN       = ARGS.token or (secrets.token_urlsafe(12) if _cfg_token in ("", "au
 _cfg_ip     = ARGS.ip or cfg_str("server", "ip", "auto")
 FIXED_IP    = None if _cfg_ip in ("", "auto") else _cfg_ip
 TIMEOUT_MIN          = cfg_int("server",  "timeout",        0)   # 0 = no timeout
-VERSION              = "1.6"
+VERSION              = "1.7"
 UPDATE_CHECK_ON_START = cfg_bool("updates", "check_on_start", False)
 NOTIFY_DEPS          = cfg_bool("updates", "notify_deps",     False)
 UPDATE_CHANNEL       = cfg_str("updates",  "channel",         "stable")
